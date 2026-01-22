@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DevOps Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #38bdf8;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        .card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #38bdf8;
+        }
+        .status {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        canvas {
+            background: white;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🚀 DevOps Observability Dashboard</h1>
+
+<div class="grid">
+    <div class="card">
+        <h2>Service Health</h2>
+        <div id="health" class="status"></div>
+    </div>
+
+    <div class="card">
+        <h2>System Uptime</h2>
+        <div id="uptime" class="status"></div>
+    </div>
+
+    <div class="card">
+        <h2>CPU Load (Live)</h2>
+        <canvas id="cpuChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Memory Usage (Live)</h2>
+        <canvas id="memChart"></canvas>
+    </div>
+</div>
+
+<script>
+let cpuData = [], memData = [], labels = [];
+
+const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+const memCtx = document.getElementById('memChart').getContext('2d');
+
+const cpuChart = new Chart(cpuCtx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'CPU Load', data: cpuData }] }
+});
+
+const memChart = new Chart(memCtx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Memory %', data: memData }] }
+});
+
+async function updateDashboard() {
+    const health = await fetch('/health').then(r => r.json());
+    const metrics = await fetch('/metrics').then(r => r.json());
+
+    document.getElementById('health').textContent =
+        health.status === 'UP' ? '🟢 UP' : '🔴 DOWN';
+
+    document.getElementById('uptime').textContent =
+        (metrics.uptime / 60).toFixed(1) + " minutes";
+
+    const time = new Date().toLocaleTimeString();
+    labels.push(time);
+    cpuData.push(metrics.cpu_load[0]);
+    memData.push(metrics.memory_usage_percent);
+
+    if (labels.length > 10) {
+        labels.shift();
+        cpuData.shift();
+        memData.shift();
+    }
+
+    cpuChart.update();
+    memChart.update();
+}
+
+updateDashboard();
+setInterval(updateDashboard, 5000);
+</script>
+
+</body>
+</html>
