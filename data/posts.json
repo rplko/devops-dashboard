@@ -1,0 +1,27 @@
+[
+  {
+    "id": "devops-dashboard-ec2",
+    "title": "How I Built a DevOps Dashboard on AWS EC2",
+    "date": "Jan 2026",
+    "tags": ["Node.js", "PM2", "Nginx", "Docker", "AWS"],
+    "content": [
+      "This project started as a way to understand how real servers behave in production.",
+      "I launched an Ubuntu EC2 instance and configured security groups properly.",
+      "Instead of using node server.js, I used PM2 for process management.",
+      "Nginx was configured as a reverse proxy from port 80 to 3000.",
+      "Later, I containerized the app using Docker and faced real port binding issues which taught me practical networking."
+    ]
+  },
+  {
+    "id": "docker-port-binding",
+    "title": "Common Docker Port Binding Mistakes and Fixes",
+    "date": "Jan 2026",
+    "tags": ["Docker", "Linux", "Networking"],
+    "content": [
+      "Docker port conflicts are one of the most common beginner issues.",
+      "I repeatedly saw 'port already allocated' errors while running containers.",
+      "The issue was old containers and host services occupying the port.",
+      "Learning to debug with docker ps, docker stop, and lsof was crucial."
+    ]
+  }
+]

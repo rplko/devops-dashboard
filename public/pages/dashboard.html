@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DevOps Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<nav>
+    <a href="/">Home</a>
+    <a href="/about">About</a>
+    <a href="/projects">Projects</a>
+    <a href="/blog">Blog</a>
+    <a href="/dashboard">Dashboard</a>
+    <a href="/contact">Contact</a>
+</nav>
+
+
+<div class="container">
+<section class="container">
+    <h1 class="section-title">Live DevOps Monitoring Dashboard</h1>
+    <p class="lead">
+        This dashboard monitors the live EC2 server where this website is hosted.
+        It demonstrates logging, system monitoring, and DevOps deployment practices in real time.
+    </p>
+</section>
+
+    <div class="cards">
+        <div class="card">
+            <h3>CPU Usage</h3>
+            <canvas id="cpuChart"></canvas>
+        </div>
+
+        <div class="card">
+            <h3>Memory Usage</h3>
+            <div id="memoryBox">Loading...</div>
+        </div>
+
+        <div class="card">
+            <h3>System Info</h3>
+            <div id="systemBox">Loading...</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Application Logs</h3>
+        <div id="logsBox" class="logs">Loading logs...</div>
+    </div>
+
+</div>
+
+<script>
+/* -------- Logs -------- */
+async function fetchLogs() {
+    const res = await fetch('/api/logs');
+    const text = await res.text();
+    document.getElementById('logsBox').innerText = text;
+}
+setInterval(fetchLogs, 5000);
+fetchLogs();
+
+/* -------- CPU Graph -------- */
+const ctx = document.getElementById('cpuChart').getContext('2d');
+const cpuData = { labels: [], datasets: [{ label: 'CPU %', data: [] }] };
+const cpuChart = new Chart(ctx, { type: 'line', data: cpuData });
+
+async function fetchCPU() {
+    const res = await fetch('/api/cpu');
+    const data = await res.json();
+    const time = new Date().toLocaleTimeString();
+
+    if (cpuData.labels.length > 20) {
+        cpuData.labels.shift();
+        cpuData.datasets[0].data.shift();
+    }
+
+    cpuData.labels.push(time);
+    cpuData.datasets[0].data.push(data.cpu);
+    cpuChart.update();
+}
+setInterval(fetchCPU, 5000);
+fetchCPU();
+
+/* -------- Memory -------- */
+async function fetchMemory() {
+    const res = await fetch('/api/memory');
+    const data = await res.json();
+    document.getElementById('memoryBox').innerHTML =
+        `Total: ${data.total} MB<br>Used: ${data.used} MB<br>Free: ${data.free} MB`;
+}
+setInterval(fetchMemory, 5000);
+fetchMemory();
+
+/* -------- System -------- */
+async function fetchSystem() {
+    const res = await fetch('/api/system');
+    const data = await res.json();
+    document.getElementById('systemBox').innerHTML =
+        `Hostname: ${data.hostname}<br>
+         Platform: ${data.platform}<br>
+         CPU Cores: ${data.cpus}<br>
+         Uptime: ${data.uptime}`;
+}
+fetchSystem();
+</script>
+<footer>
+    <div class="container">
+        © 2026 Rajat Pandey • Built with Node.js, PM2, Docker, Nginx on AWS EC2
+    </div>
+</footer>
+
+</body>
+</html>
