@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DevOps Dashboard | Rajat Pandey</title>
+    <link rel="stylesheet" href="/css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    
+<script>
+    let cpuChart;
+    let cpuData = [];
+    let labels = [];
+
+    async function loadMetrics() {
+        try {
+            const res = await fetch('/metrics');
+            const data = await res.json();
+
+            document.getElementById('uptime').innerText = data.uptime + " seconds";
+            document.getElementById('memory').innerText = data.memory;
+            document.getElementById('cpu').innerText = data.cpu + " %";
+            document.getElementById('hostname').innerText = data.hostname;
+document.getElementById('platform').innerText = data.platform;
+document.getElementById('totalMem').innerText = data.totalMem;
+document.getElementById('freeMem').innerText = data.freeMem;
+document.getElementById('nodeVersion').innerText = data.nodeVersion;
+
+            const now = new Date().toLocaleTimeString();
+
+            if (cpuData.length > 10) {
+                cpuData.shift();
+                labels.shift();
+            }
+
+            cpuData.push(data.cpu);
+            labels.push(now);
+
+            cpuChart.update();
+
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    window.onload = function () {
+        const ctx = document.getElementById('cpuChart').getContext('2d');
+
+        cpuChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'CPU Usage %',
+                    data: cpuData,
+                    borderWidth: 2,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        loadMetrics();
+        setInterval(loadMetrics, 5000);
+    };
+</script>
+<script>
+async function fetchMemory() {
+    const res = await fetch('/api/memory');
+    const data = await res.json();
+
+    document.getElementById('memoryBox').innerHTML = `
+        Total: ${data.total} MB<br>
+        Used: ${data.used} MB<br>
+        Free: ${data.free} MB
+    `;
+}
+
+setInterval(fetchMemory, 5000);
+fetchMemory();
+</script>
+
+</head>
+<body>
+
+<div class="card" style="width: 90%; margin-top:40px;">
+    <h2>System Information</h2>
+    <p><strong>Hostname:</strong> <span id="hostname">Loading...</span></p>
+    <p><strong>Platform:</strong> <span id="platform">Loading...</span></p>
+    <p><strong>Total Memory:</strong> <span id="totalMem">Loading...</span></p>
+    <p><strong>Free Memory:</strong> <span id="freeMem">Loading...</span></p>
+    <p><strong>Node Version:</strong> <span id="nodeVersion">Loading...</span></p>
+</div>
+
+        <div class="card">
+            <h2>Server Uptime</h2>
+            <p id="uptime">Loading...</p>
+        </div>
+
+        <div class="card">
+            <h2>Memory Usage</h2>
+            <p id="memory">Loading...</p>
+        </div>
+
+        <div class="card">
+            <h2>CPU Usage</h2>
+            <p id="cpu">Loading...</p>
+        </div>
+    </div>
+</div>
+
+
+<pre id="logs" style="height:300px;overflow:auto;background:black;color:lime;padding:10px;"></pre>
+
+<script>
+async function fetchLogs() {
+    const res = await fetch('/api/logs');
+    const text = await res.text();
+    document.getElementById('logs').innerText = text;
+}
+
+setInterval(fetchLogs, 5000);
+fetchLogs();
+</script>
+<h2>Memory Usage</h2>
+<div id="memoryBox"
+     style="background:#111;color:#0f0;padding:15px;border-radius:8px;margin-bottom:20px;">
+Loading memory stats...
+</div>
+
+
+</body>
+</html>
