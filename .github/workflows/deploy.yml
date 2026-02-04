@@ -50,7 +50,7 @@ jobs:
             fi
 
             echo "🔄 Restarting PM2 app..."
-            pm2 restart devops-dashboard
+            pm2 restart server
 
             echo "✅ Deployment completed successfully!"
           EOF
