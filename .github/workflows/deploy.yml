@@ -15,20 +15,39 @@ jobs:
 
       - name: Setup SSH
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+           echo "🔑 Setting up SSH..."
+  
+               mkdir -p ~/.ssh
+                chmod 700 ~/.ssh
+  
+                   # Add private key from GitHub Secrets
+                     echo "$SSH_KEY" > ~/.ssh/id_rsa
+                       chmod 600 ~/.ssh/id_rsa
+  
+                            # Add EC2 host to known_hosts (fixes host verification error)
+                        ssh-keyscan -H ec2-98-92-57-61.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+  
+                       echo "🚀 Connecting to EC2 and deploying..."
+  
+                        ssh -o StrictHostKeyChecking=no ubuntu@ec2-98-92-57-61.compute-1.amazonaws.com << 'EOF'
+                           set -e
+  
+                             echo "📂 Moving to project directory..."
+                                 cd ~/devops-dashboard
+  
+                             echo "⬇️ Pulling latest code..."
+                                git pull origin main
+  
+                                echo "📦 Installing dependencies if needed..."
+                                if [ -f package-lock.json ]; then
+                                       npm ci
+                                     else
+                                       npm install
+                                     fi
 
-      - name: Deploy to EC2
-        run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            cd ~/devops-dashboard
-            git pull origin main
-
-            docker stop dashboard || true
+              docker stop dashboard || true
             docker rm dashboard || true
 
             docker build -t devops-dashboard .
             docker run -d -p 3000:3000 --name dashboard devops-dashboard
-          EOF
+            EOF
