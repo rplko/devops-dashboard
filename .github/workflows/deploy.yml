@@ -1,4 +1,4 @@
-name: Deploy Docker App
+name: Deploy Docker App to EC2
 
 on:
   push:
@@ -9,45 +9,52 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
+
     steps:
-      - name: Checkout code
+
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Setup SSH
         run: |
-           echo "🔑 Setting up SSH..."
-  
-               mkdir -p ~/.ssh
-                chmod 700 ~/.ssh
-  
-                   # Add private key from GitHub Secrets
-                     echo "$SSH_KEY" > ~/.ssh/id_rsa
-                       chmod 600 ~/.ssh/id_rsa
-  
-                            # Add EC2 host to known_hosts (fixes host verification error)
-                        ssh-keyscan -H ec2-98-92-57-61.compute-1.amazonaws.com >> ~/.ssh/known_hosts
-  
-                       echo "🚀 Connecting to EC2 and deploying..."
-  
-                        ssh -o StrictHostKeyChecking=no ubuntu@ec2-98-92-57-61.compute-1.amazonaws.com << 'EOF'
-                           set -e
-  
-                             echo "📂 Moving to project directory..."
-                                 cd ~/devops-dashboard
-  
-                             echo "⬇️ Pulling latest code..."
-                                git pull origin main
-  
-                                echo "📦 Installing dependencies if needed..."
-                                if [ -f package-lock.json ]; then
-                                       npm ci
-                                     else
-                                       npm install
-                                     fi
+          echo "🔑 Setting up SSH..."
 
-              docker stop dashboard || true
-            docker rm dashboard || true
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
 
-            docker build -t devops-dashboard .
-            docker run -d -p 3000:3000 --name dashboard devops-dashboard
-            EOF
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          echo "🚀 Connecting to EC2 and deploying..."
+
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+
+          set -e
+
+          echo "📂 Moving to project directory..."
+          cd ~/devops-dashboard
+
+          echo "⬇️ Pulling latest code..."
+          git pull origin main
+
+          echo "🐳 Stopping old container if it exists..."
+          docker stop dashboard || true
+          docker rm dashboard || true
+
+          echo "🏗️ Building Docker image..."
+          docker build -t devops-dashboard .
+
+          echo "🚀 Starting new container..."
+          docker run -d -p 3000:3000 --name dashboard devops-dashboard
+
+          echo "✅ Deployment complete!"
+
+          EOF
