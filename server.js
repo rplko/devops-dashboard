@@ -2,78 +2,26 @@ const express = require('express');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const axios = require('axios');
 
 const app = express();
-const port = 3000;
-const axios = require('axios');
+const PORT = 3000;
+
+/* ---------------- STATIC FILES ---------------- */
+
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/', (req, res) => {
-    res.send('🚀 DevOps Engineer Dashboard API is Running');
-});
+/* ---------------- LOGGING ---------------- */
 
-app.get('/health', (req, res) => {
-    res.json({ status: 'UP', timestamp: new Date() });
-});
+const logFile = './logs/app.log';
 
-app.get('/info', (req, res) => {
-    res.json({
-        hostname: os.hostname(),
-        platform: os.platform(),
-        uptime: os.uptime(),
-        node_version: process.version
-    });
-});
+function writeLog(message) {
+    const timestamp = new Date().toISOString();
+    fs.appendFileSync(logFile, `[${timestamp}] ${message}\n`);
+}
 
-app.get('/metrics', (req, res) => {
-    const totalMem = os.totalmem();
-    const freeMem = os.freemem();
+/* ---------------- PAGE TEMPLATE ---------------- */
 
-    res.json({
-        free_memory: freeMem,
-        total_memory: totalMem,
-        used_memory: totalMem - freeMem,
-        memory_usage_percent: (((totalMem - freeMem) / totalMem) * 100).toFixed(2),
-        cpu_load: os.loadavg(),
-        uptime: os.uptime()
-    });
-});
-
-
-app.get('/logs', (req, res) => {
-    res.json({
-        logs: [
-            "App started successfully",
-            "Connected to database",
-            "Health check passed",
-            "Metrics collected"
-        ]
-    });
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-});
-app.get('/api/deployment', async (req, res) => {
-    try {
-        const response = await axios.get(
-            'https://api.github.com/repos/rplko/devops-dashboard/actions/runs'
-        );
-
-        const run = response.data.workflow_runs[0];
-
-        res.json({
-            status: run.conclusion,
-            branch: run.head_branch,
-            commit: run.head_sha.substring(0,7),
-            time: run.updated_at
-        });
-
-    } catch (error) {
-        res.json({ status: "Unable to fetch deployment info" });
-    }
-});
-app.use(express.static(path.join(__dirname, 'public')));
 function renderPage(content) {
     const header = fs.readFileSync('./views/header.html', 'utf-8');
     const footer = fs.readFileSync('./views/footer.html', 'utf-8');
@@ -92,14 +40,7 @@ function renderPage(content) {
     `;
 }
 
-const logFile = './logs/app.log';
-
-function writeLog(message) {
-    const timestamp = new Date().toISOString();
-    fs.appendFileSync(logFile, `[${timestamp}] ${message}\n`);
-}
-
-/* ---------------- ROUTES ---------------- */
+/* ---------------- WEBSITE ROUTES ---------------- */
 
 app.get('/', (req, res) => {
     writeLog("Home page visited");
@@ -110,6 +51,7 @@ app.get('/dashboard', (req, res) => {
     writeLog("Dashboard visited");
     res.sendFile(path.join(__dirname, 'public', 'pages', 'dashboard.html'));
 });
+
 app.get('/about', (req, res) => {
     writeLog("About page visited");
     const content = fs.readFileSync('./public/pages/about.html', 'utf-8');
@@ -120,7 +62,16 @@ app.get('/projects', (req, res) => {
     writeLog("Projects page visited");
     res.sendFile(path.join(__dirname, 'public', 'pages', 'projects.html'));
 });
+
+app.get('/contact', (req, res) => {
+    writeLog("Contact page visited");
+    res.sendFile(path.join(__dirname, 'public', 'pages', 'contact.html'));
+});
+
+/* ---------------- BLOG SYSTEM ---------------- */
+
 app.get('/blog', (req, res) => {
+
     const posts = JSON.parse(fs.readFileSync('./data/posts.json'));
 
     let blogCards = posts.map(post => `
@@ -140,12 +91,12 @@ app.get('/blog', (req, res) => {
         </head>
         <body>
             <nav>
-    <a href="/">Home</a>
-    <a href="/about">About</a>
-    <a href="/projects">Projects</a>
-    <a href="/blog">Blog</a>
-    <a href="/dashboard">Dashboard</a>
-    <a href="/contact">Contact</a> 
+                <a href="/">Home</a>
+                <a href="/about">About</a>
+                <a href="/projects">Projects</a>
+                <a href="/blog">Blog</a>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/contact">Contact</a>
             </nav>
 
             <section class="container">
@@ -158,7 +109,9 @@ app.get('/blog', (req, res) => {
         </html>
     `);
 });
+
 app.get('/blog/:id', (req, res) => {
+
     const posts = JSON.parse(fs.readFileSync('./data/posts.json'));
     const post = posts.find(p => p.id === req.params.id);
 
@@ -188,25 +141,55 @@ app.get('/blog/:id', (req, res) => {
     `);
 });
 
+/* ---------------- BASIC HEALTH APIs ---------------- */
 
-app.get('/contact', (req, res) => {
-    writeLog("Contact page visited");
-    res.sendFile(path.join(__dirname, 'public', 'pages', 'contact.html'));
+app.get('/health', (req, res) => {
+    res.json({ status: 'UP', timestamp: new Date() });
 });
 
-/* ---------------- LOGS API ---------------- */
-
-app.get('/api/logs', (req, res) => {
-    fs.readFile(logFile, 'utf8', (err, data) => {
-        if (err) return res.send("No logs yet...");
-        const lines = data.trim().split("\n").slice(-50).join("\n");
-        res.send(lines);
+app.get('/info', (req, res) => {
+    res.json({
+        hostname: os.hostname(),
+        platform: os.platform(),
+        uptime: os.uptime(),
+        node_version: process.version
     });
 });
 
-/* ---------------- CPU API ---------------- */
+app.get('/metrics', (req, res) => {
+
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+
+    res.json({
+        free_memory: freeMem,
+        total_memory: totalMem,
+        used_memory: totalMem - freeMem,
+        memory_usage_percent: (((totalMem - freeMem) / totalMem) * 100).toFixed(2),
+        cpu_load: os.loadavg(),
+        uptime: os.uptime()
+    });
+});
+
+/* ---------------- DASHBOARD APIs ---------------- */
+
+app.get('/api/logs', (req, res) => {
+
+    fs.readFile(logFile, 'utf8', (err, data) => {
+
+        if (err) return res.send("No logs yet...");
+
+        const lines = data.trim().split("\n").slice(-50).join("\n");
+        res.send(lines);
+
+    });
+
+});
+
+/* CPU API */
 
 function getCPUUsage() {
+
     const cpus = os.cpus();
     let idle = 0, total = 0;
 
@@ -221,17 +204,24 @@ function getCPUUsage() {
 let startMeasure = getCPUUsage();
 
 app.get('/api/cpu', (req, res) => {
+
     const endMeasure = getCPUUsage();
+
     const idleDiff = endMeasure.idle - startMeasure.idle;
     const totalDiff = endMeasure.total - startMeasure.total;
+
     const cpuUsage = 100 - Math.floor(100 * idleDiff / totalDiff);
+
     startMeasure = getCPUUsage();
+
     res.json({ cpu: cpuUsage });
+
 });
 
-/* ---------------- MEMORY API ---------------- */
+/* Memory API */
 
 app.get('/api/memory', (req, res) => {
+
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const usedMem = totalMem - freeMem;
@@ -241,19 +231,51 @@ app.get('/api/memory', (req, res) => {
         used: (usedMem / 1024 / 1024).toFixed(2),
         free: (freeMem / 1024 / 1024).toFixed(2)
     });
+
 });
 
-/* ---------------- SYSTEM INFO API ---------------- */
+/* System API */
 
 app.get('/api/system', (req, res) => {
+
     res.json({
         hostname: os.hostname(),
         platform: os.platform(),
         uptime: (os.uptime() / 60).toFixed(2) + " minutes",
         cpus: os.cpus().length
     });
+
 });
 
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+/* ---------------- DEPLOYMENT STATUS ---------------- */
+
+app.get('/api/deployment', async (req, res) => {
+
+    try {
+
+        const response = await axios.get(
+            'https://api.github.com/repos/rplko/devops-dashboard/actions/runs'
+        );
+
+        const run = response.data.workflow_runs[0];
+
+        res.json({
+            status: run.conclusion,
+            branch: run.head_branch,
+            commit: run.head_sha.substring(0,7),
+            time: run.updated_at
+        });
+
+    } catch (error) {
+
+        res.json({ status: "Unable to fetch deployment info" });
+
+    }
+
+});
+
+/* ---------------- START SERVER ---------------- */
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
 });
