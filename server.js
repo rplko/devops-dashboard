@@ -5,7 +5,27 @@ const path = require('path');
 
 const app = express();
 const port = 3000;
+const axios = require('axios');
 
+app.get('/api/deployment', async (req, res) => {
+    try {
+        const response = await axios.get(
+            'https://api.github.com/repos/rplko/devops-dashboard/actions/runs'
+        );
+
+        const run = response.data.workflow_runs[0];
+
+        res.json({
+            status: run.conclusion,
+            branch: run.head_branch,
+            commit: run.head_sha.substring(0,7),
+            time: run.updated_at
+        });
+
+    } catch (error) {
+        res.json({ status: "Unable to fetch deployment info" });
+    }
+});
 app.use(express.static(path.join(__dirname, 'public')));
 function renderPage(content) {
     const header = fs.readFileSync('./views/header.html', 'utf-8');

@@ -40,6 +40,7 @@
     <h3>CPU Load Gauge</h3>
     <canvas id="cpuGauge"></canvas>
 </div>
+
         <div class="card">
             <h3>System Info</h3>
             <div id="systemBox">Loading...</div>
@@ -50,6 +51,10 @@
         <h3>Application Logs</h3>
         <div id="logsBox" class="logs">Loading logs...</div>
     </div>
+    <div class="card">
+    <h3>Deployment Status</h3>
+    <div id="deployBox">Checking pipeline...</div>
+</div>
 
 </div>
 
@@ -171,7 +176,27 @@ async function fetchMemory() {
 }
 setInterval(fetchMemory, 5000);
 fetchMemory();
+/* -------- Deployment Status -------- */
 
+async function fetchDeployment() {
+    const res = await fetch('/api/deployment');
+    const data = await res.json();
+
+   const statusColor =
+    data.status === "success" ? "lime" :
+    data.status === "failure" ? "red" : "orange";
+
+document.getElementById('deployBox').innerHTML =
+    `<span style="color:${statusColor}">
+     Status: ${data.status.toUpperCase()}
+     </span><br>
+     Branch: ${data.branch}<br>
+     Commit: ${data.commit}<br>
+     Updated: ${new Date(data.time).toLocaleString()}`;
+}
+
+setInterval(fetchDeployment, 10000);
+fetchDeployment();
 /* -------- System -------- */
 async function fetchSystem() {
     const res = await fetch('/api/system');
