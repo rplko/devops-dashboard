@@ -51,11 +51,8 @@ jobs:
           docker rm dashboard || true
 
           echo "🏗️ Building Docker image..."
-          docker build -t devops-dashboard .
-
-          echo "🚀 Starting new container..."
-          docker run -d -p 3000:3000 --name dashboard devops-dashboard
-
+          docker compose down
+          docker compose up -d --build
           echo "✅ Deployment complete!"
 
           EOF
