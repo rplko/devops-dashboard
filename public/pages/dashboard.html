@@ -120,32 +120,47 @@ async function fetchCPU() {
     cpuData.labels.push(time);
     cpuData.datasets[0].data.push(data.cpu);
     cpuGauge.data.datasets[0].data = [data.cpu, 100 - data.cpu];
+    cpuGauge.data.datasets[0].currentValue = data.cpu;
     cpuGauge.update();
     cpuChart.update();
 }
 setInterval(fetchCPU, 5000);
 fetchCPU();
 /* -------- CPU Gauge -------- */
+const gaugeLabel = {
+    id: 'gaugeLabel',
+    afterDraw(chart) {
+        const { ctx, chartArea: { width, height } } = chart;
 
+        ctx.save();
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillStyle = '#333';
+        ctx.textAlign = 'center';
+        ctx.fillText(chart.config.data.datasets[0].currentValue + '%', width / 2, height - 10);
+    }
+};
 const gaugeCtx = document.getElementById('cpuGauge').getContext('2d');
 
 const cpuGauge = new Chart(gaugeCtx, {
     type: 'doughnut',
     data: {
-        labels: ['CPU Used', 'Free'],
+        labels: ['CPU'],
         datasets: [{
             data: [0, 100],
-            backgroundColor: ['#ff4d4d', '#e0e0e0']
+            currentValue: 0,
+            backgroundColor: ['#4CAF50', '#e0e0e0'],
+            borderWidth: 0
         }]
     },
     options: {
         rotation: -90,
         circumference: 180,
-        cutout: '70%',
+        cutout: '75%',
         plugins: {
             legend: { display: false }
         }
-    }
+    },
+    plugins: [gaugeLabel]
 });
 /* -------- Memory -------- */
 async function fetchMemory() {
