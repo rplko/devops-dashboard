@@ -36,7 +36,10 @@
     <h3>Memory Usage</h3>
     <canvas id="memoryChart"></canvas>
 </div>
-
+<div class="card">
+    <h3>CPU Load Gauge</h3>
+    <canvas id="cpuGauge"></canvas>
+</div>
         <div class="card">
             <h3>System Info</h3>
             <div id="systemBox">Loading...</div>
@@ -116,11 +119,34 @@ async function fetchCPU() {
 
     cpuData.labels.push(time);
     cpuData.datasets[0].data.push(data.cpu);
+    cpuGauge.data.datasets[0].data = [data.cpu, 100 - data.cpu];
+    cpuGauge.update();
     cpuChart.update();
 }
 setInterval(fetchCPU, 5000);
 fetchCPU();
+/* -------- CPU Gauge -------- */
 
+const gaugeCtx = document.getElementById('cpuGauge').getContext('2d');
+
+const cpuGauge = new Chart(gaugeCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['CPU Used', 'Free'],
+        datasets: [{
+            data: [0, 100],
+            backgroundColor: ['#ff4d4d', '#e0e0e0']
+        }]
+    },
+    options: {
+        rotation: -90,
+        circumference: 180,
+        cutout: '70%',
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
 /* -------- Memory -------- */
 async function fetchMemory() {
     const res = await fetch('/api/memory');
