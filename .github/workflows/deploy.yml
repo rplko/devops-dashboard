@@ -46,13 +46,16 @@ jobs:
            git fetch origin
            git reset --hard origin/main
 
-          echo "🐳 Stopping old container if it exists..."
-          docker stop dashboard || true
-          docker rm dashboard || true
+          
 
           echo "🏗️ Building Docker image..."
-          docker compose down
-          docker compose up -d --build
+          docker compose build
+
+          echo "🚀 Starting / Updating container..."
+          docker compose up -d
+
+          echo "🧹 Cleaning unused containers..."
+          docker container prune -f
           echo "✅ Deployment complete!"
 
           EOF
