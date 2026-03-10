@@ -33,9 +33,9 @@
         </div>
 
         <div class="card">
-            <h3>Memory Usage</h3>
-            <div id="memoryBox">Loading...</div>
-        </div>
+    <h3>Memory Usage</h3>
+    <canvas id="memoryChart"></canvas>
+</div>
 
         <div class="card">
             <h3>System Info</h3>
@@ -59,7 +59,46 @@ async function fetchLogs() {
 }
 setInterval(fetchLogs, 5000);
 fetchLogs();
+/* -------- Memory Graph -------- */
 
+const memCtx = document.getElementById('memoryChart').getContext('2d');
+
+const memoryData = {
+    labels: [],
+    datasets: [{
+        label: 'Memory %',
+        data: [],
+        borderColor: '#2196F3',
+        tension: 0.3
+    }]
+};
+
+const memoryChart = new Chart(memCtx, {
+    type: 'line',
+    data: memoryData
+});
+
+async function fetchMemoryChart() {
+    const res = await fetch('/api/memory');
+    const data = await res.json();
+
+    const time = new Date().toLocaleTimeString();
+
+    const percent = ((data.used / data.total) * 100).toFixed(2);
+
+    if (memoryData.labels.length > 20) {
+        memoryData.labels.shift();
+        memoryData.datasets[0].data.shift();
+    }
+
+    memoryData.labels.push(time);
+    memoryData.datasets[0].data.push(percent);
+
+    memoryChart.update();
+}
+
+setInterval(fetchMemoryChart, 5000);
+fetchMemoryChart();
 /* -------- CPU Graph -------- */
 const ctx = document.getElementById('cpuChart').getContext('2d');
 const cpuData = { labels: [], datasets: [{ label: 'CPU %', data: [] }] };
