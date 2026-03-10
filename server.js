@@ -72,14 +72,7 @@ app.get('/blog', (req, res) => {
             <title>Blog - Rajat Pandey</title>
         </head>
         <body>
-            <nav>
-                <a href="/">Home</a>
-                <a href="/about">About</a>
-                <a href="/projects">Projects</a>
-                <a href="/blog">Blog</a>
-                <a href="/dashboard">Dashboard</a>
-                <a href="/contact">Contact</a>
-            </nav>
+            
 
             <section class="container">
                 <h1 class="section-title">Engineering Blog</h1>
