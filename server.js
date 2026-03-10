@@ -20,7 +20,7 @@ function writeLog(message) {
     fs.appendFileSync(logFile, `[${timestamp}] ${message}\n`);
 }
 
-/* ---------------- PAGE TEMPLATE ---------------- */
+/* ---------------- PAGE RENDERER ---------------- */
 
 function renderPage(content) {
     const header = fs.readFileSync('./views/header.html', 'utf-8');
@@ -68,7 +68,7 @@ app.get('/contact', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'pages', 'contact.html'));
 });
 
-/* ---------------- BLOG SYSTEM ---------------- */
+/* ---------------- BLOG ---------------- */
 
 app.get('/blog', (req, res) => {
 
@@ -90,6 +90,7 @@ app.get('/blog', (req, res) => {
             <title>Blog - Rajat Pandey</title>
         </head>
         <body>
+
             <nav>
                 <a href="/">Home</a>
                 <a href="/about">About</a>
@@ -105,6 +106,7 @@ app.get('/blog', (req, res) => {
                     ${blogCards}
                 </div>
             </section>
+
         </body>
         </html>
     `);
@@ -126,6 +128,7 @@ app.get('/blog/:id', (req, res) => {
             <title>${post.title}</title>
         </head>
         <body>
+
             <nav>
                 <a href="/">Home</a>
                 <a href="/blog">Back to Blog</a>
@@ -136,12 +139,13 @@ app.get('/blog/:id', (req, res) => {
                 <div class="blog-meta">${post.date} • ${post.tags.join(' • ')}</div>
                 ${paragraphs}
             </section>
+
         </body>
         </html>
     `);
 });
 
-/* ---------------- BASIC HEALTH APIs ---------------- */
+/* ---------------- API ROUTES ---------------- */
 
 app.get('/health', (req, res) => {
     res.json({ status: 'UP', timestamp: new Date() });
@@ -169,9 +173,10 @@ app.get('/metrics', (req, res) => {
         cpu_load: os.loadavg(),
         uptime: os.uptime()
     });
+
 });
 
-/* ---------------- DASHBOARD APIs ---------------- */
+/* ---------------- LOGS API ---------------- */
 
 app.get('/api/logs', (req, res) => {
 
@@ -186,19 +191,27 @@ app.get('/api/logs', (req, res) => {
 
 });
 
-/* CPU API */
+/* ---------------- CPU API ---------------- */
 
 function getCPUUsage() {
 
     const cpus = os.cpus();
-    let idle = 0, total = 0;
+
+    let idle = 0;
+    let total = 0;
 
     cpus.forEach(core => {
-        for (type in core.times) total += core.times[type];
+
+        for (type in core.times) {
+            total += core.times[type];
+        }
+
         idle += core.times.idle;
+
     });
 
     return { idle, total };
+
 }
 
 let startMeasure = getCPUUsage();
@@ -218,7 +231,7 @@ app.get('/api/cpu', (req, res) => {
 
 });
 
-/* Memory API */
+/* ---------------- MEMORY API ---------------- */
 
 app.get('/api/memory', (req, res) => {
 
@@ -227,27 +240,31 @@ app.get('/api/memory', (req, res) => {
     const usedMem = totalMem - freeMem;
 
     res.json({
+
         total: (totalMem / 1024 / 1024).toFixed(2),
         used: (usedMem / 1024 / 1024).toFixed(2),
         free: (freeMem / 1024 / 1024).toFixed(2)
+
     });
 
 });
 
-/* System API */
+/* ---------------- SYSTEM INFO ---------------- */
 
 app.get('/api/system', (req, res) => {
 
     res.json({
+
         hostname: os.hostname(),
         platform: os.platform(),
         uptime: (os.uptime() / 60).toFixed(2) + " minutes",
         cpus: os.cpus().length
+
     });
 
 });
 
-/* ---------------- DEPLOYMENT STATUS ---------------- */
+/* ---------------- DEPLOYMENT INFO ---------------- */
 
 app.get('/api/deployment', async (req, res) => {
 
@@ -260,10 +277,12 @@ app.get('/api/deployment', async (req, res) => {
         const run = response.data.workflow_runs[0];
 
         res.json({
+
             status: run.conclusion,
             branch: run.head_branch,
             commit: run.head_sha.substring(0,7),
             time: run.updated_at
+
         });
 
     } catch (error) {
