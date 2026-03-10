@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+
+  dashboard:
+    container_name: dashboard
+    build: .
+    ports:
+      - "3000:3000"
+    restart: always
