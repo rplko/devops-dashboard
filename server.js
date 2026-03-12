@@ -230,6 +230,15 @@ app.get('/api/cpu', (req, res) => {
     res.json({ cpu: cpuUsage });
 
 });
+/* ---------------- METRICS API ---------------- */
+
+app.get("/metrics/deployments", (req, res) => {
+  res.json({
+    deployments: process.env.DEPLOY_COUNT || 1,
+    status: "success",
+    timestamp: new Date()
+  });
+});
 
 /* ---------------- MEMORY API ---------------- */
 
