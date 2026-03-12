@@ -54,6 +54,14 @@
     <div class="card">
     <h3>Deployment Status</h3>
     <div id="deployBox">Checking pipeline...</div>
+    <div class="status-panel">
+    <h2>Infrastructure Status</h2>
+
+     <p>CPU Load: <span id="cpu"></span></p>
+     <p>Memory Usage: <span id="memory"></span>%</p>
+     <p>Running Containers: <span id="containers"></span></p>
+    </div>
+    
 </div>
 
 </div>
@@ -176,6 +184,20 @@ async function fetchMemory() {
 }
 setInterval(fetchMemory, 5000);
 fetchMemory();
+/* -------- Live Update  -------- */
+async function loadSystemStatus() {
+
+  const res = await fetch("/api/system-status");
+  const data = await res.json();
+
+  document.getElementById("cpu").innerText = data.cpuLoad;
+  document.getElementById("memory").innerText = data.memoryUsage;
+  document.getElementById("containers").innerText = data.runningContainers;
+
+}
+
+setInterval(loadSystemStatus, 5000);
+loadSystemStatus();
 /* -------- Deployment Status -------- */
 
 async function fetchDeployment() {
