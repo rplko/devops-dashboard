@@ -302,6 +302,32 @@ app.get('/api/deployment', async (req, res) => {
 
 });
 
+const { exec } = require("child_process");
+
+app.get("/api/system-status", (req, res) => {
+
+  const cpuLoad = os.loadavg()[0];
+  const totalMem = os.totalmem();
+  const freeMem = os.freemem();
+  const usedMem = ((totalMem - freeMem) / totalMem * 100).toFixed(2);
+
+  exec("docker ps --format '{{.Names}}'", (err, stdout) => {
+
+    const containers = stdout
+      .split("\n")
+      .filter(c => c.length > 0);
+
+    res.json({
+      cpuLoad: cpuLoad.toFixed(2),
+      memoryUsage: usedMem,
+      runningContainers: containers.length,
+      containerNames: containers,
+      timestamp: new Date()
+    });
+
+  });
+
+});
 /* ---------------- START SERVER ---------------- */
 
 app.listen(PORT, '0.0.0.0', () => {
