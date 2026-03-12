@@ -1,33 +1,41 @@
-version: "3.8"
+version: "3.9"
 
 services:
 
   dashboard:
-    container_name: dashboard
     build: .
+    container_name: dashboard
+    restart: unless-stopped
     ports:
       - "3000:3000"
-    restart: always
 
   prometheus:
     image: prom/prometheus
     container_name: prometheus
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
     ports:
       - "9090:9090"
-    restart: always
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
 
   node_exporter:
     image: prom/node-exporter
     container_name: node_exporter
+    restart: unless-stopped
     ports:
       - "9100:9100"
-    restart: always
 
   grafana:
     image: grafana/grafana
     container_name: grafana
+    restart: unless-stopped
     ports:
       - "3001:3000"
-    restart: always
+    environment:
+      - GF_SERVER_ROOT_URL=http://98.92.57.61/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  grafana_data:
