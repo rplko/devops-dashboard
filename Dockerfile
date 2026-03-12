@@ -5,8 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 
 RUN npm install
-RUN apt-get update && apt-get install -y docker.io
-
+RUN apk add --no-cache docker-cli
 COPY . .
 
 EXPOSE 3000
