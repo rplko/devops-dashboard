@@ -1,3 +1,8 @@
+const Docker = require("dockerode");
+
+const docker = new Docker({
+  socketPath: "/var/run/docker.sock"
+});
 const express = require('express');
 const fs = require('fs');
 const os = require('os');
@@ -143,6 +148,39 @@ app.get('/blog/:id', (req, res) => {
         </body>
         </html>
     `);
+});
+/* ---------------- LIVE CONTAINER STATS ---------------- */
+app.get("/api/container-stats", async (req, res) => {
+
+  try {
+
+    const containers = await docker.listContainers();
+    const stats = [];
+
+    for (const containerInfo of containers) {
+
+      const container = docker.getContainer(containerInfo.Id);
+      const data = await container.stats({ stream: false });
+
+      const memoryUsage = data.memory_stats.usage;
+      const memoryLimit = data.memory_stats.limit;
+
+      const memPercent = ((memoryUsage / memoryLimit) * 100).toFixed(2);
+
+      stats.push({
+        name: containerInfo.Names[0].replace("/", ""),
+        status: containerInfo.State,
+        memoryPercent: memPercent
+      });
+
+    }
+
+    res.json(stats);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+
 });
 
 /* ---------------- API ROUTES ---------------- */
