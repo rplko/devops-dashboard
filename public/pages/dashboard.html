@@ -54,19 +54,54 @@
     <div class="card">
     <h3>Deployment Status</h3>
     <div id="deployBox">Checking pipeline...</div>
-    <div class="status-panel">
+    
+    
+</div>
+<div class="status-panel">
     <h2>Infrastructure Status</h2>
 
      <p>CPU Load: <span id="cpu"></span></p>
      <p>Memory Usage: <span id="memory"></span>%</p>
      <p>Running Containers: <span id="containers"></span></p>
     </div>
-    
 </div>
+<h2>Containers</h2>
 
-</div>
+<table>
+<tr>
+<th>Name</th>
+<th>Status</th>
+<th>Memory %</th>
+</tr>
 
+<tbody id="containerTable"></tbody>
+</table>
 <script>
+/* -------- Containers -------- */
+async function loadContainers(){
+
+  const res = await fetch("/api/container-stats");
+  const data = await res.json();
+
+  const table = document.getElementById("containerTable");
+  table.innerHTML = "";
+
+  data.forEach(c => {
+
+    table.innerHTML += `
+      <tr>
+        <td>${c.name}</td>
+        <td>${c.status}</td>
+        <td>${c.memoryPercent}%</td>
+      </tr>
+    `;
+
+  });
+
+}
+
+setInterval(loadContainers, 5000);
+loadContainers();
 /* -------- Logs -------- */
 async function fetchLogs() {
     const res = await fetch('/api/logs');
