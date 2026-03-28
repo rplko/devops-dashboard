@@ -11,10 +11,6 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^1.13.6",
-<<<<<<< HEAD
-=======
-    "dockerode": "^4.0.9",
->>>>>>> 202e63b8988d2ade6ad8433c3db93cefa9396dea
     "express": "^5.2.1",
     "os": "^0.1.2"
   },
