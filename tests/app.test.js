@@ -1,14 +1,34 @@
 /**
  * Integration tests for devops-dashboard
- * Run with: npm test
- *
- * Start your server first with: node server.js
- * Then in another terminal run: npm test
+ * Starts its own server instance so no separate process needed
  */
+
+// Mock dockerode before anything else so server.js doesn't crash
+// when Docker socket isn't available (e.g. in GitHub Actions)
+const Module = require('module');
+const originalLoad = Module._load;
+Module._load = function(name, ...args) {
+  if (name === 'dockerode') {
+    return class DockerMock {
+      listContainers() { return Promise.resolve([]); }
+      getContainer() {
+        return {
+          stats: () => Promise.resolve({
+            memory_stats: { usage: 100, limit: 1000 }
+          })
+        };
+      }
+    };
+  }
+  return originalLoad.apply(this, [name, ...args]);
+};
 
 const http = require('http');
 
-const BASE_URL = process.env.TEST_URL || 'http://localhost:3000';
+// Start the server
+const app = require('../server.js');
+
+const BASE_URL = 'http://localhost:3000';
 
 function get(path) {
   return new Promise((resolve, reject) => {
@@ -139,7 +159,7 @@ async function runTests() {
   });
 
   console.log(`\n  Results: ${passed} passed, ${failed} failed\n`);
-  if (failed > 0) process.exit(1);
+  process.exit(failed > 0 ? 1 : 0);
 }
 
 runTests().catch(err => {

@@ -149,7 +149,9 @@ app.get('/blog/:id', (req, res) => {
         </html>
     `);
 });
+
 /* ---------------- LIVE CONTAINER STATS ---------------- */
+
 app.get("/api/container-stats", async (req, res) => {
 
   try {
@@ -268,6 +270,7 @@ app.get('/api/cpu', (req, res) => {
     res.json({ cpu: cpuUsage });
 
 });
+
 /* ---------------- METRICS API ---------------- */
 
 app.get("/metrics/deployments", (req, res) => {
@@ -366,8 +369,11 @@ app.get("/api/system-status", (req, res) => {
   });
 
 });
+
 /* ---------------- START SERVER ---------------- */
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = app;
