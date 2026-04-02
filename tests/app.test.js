@@ -23,17 +23,14 @@ Module._load = function(name, ...args) {
 
 const http = require('http');
 
-// Force IPv4
 const BASE_URL = 'http://127.0.0.1:3000';
 
-// Import server — this starts it
 require('../server.js');
 
-// Wait for server to be ready before running tests
 function waitForServer(retries = 10) {
   return new Promise((resolve, reject) => {
     function attempt(n) {
-      http.get(`${BASE_URL}/health`, (res) => {
+      http.get(BASE_URL + '/health', (res) => {
         resolve();
       }).on('error', (err) => {
         if (n <= 0) return reject(new Error('Server never became ready'));
@@ -46,7 +43,7 @@ function waitForServer(retries = 10) {
 
 function get(path) {
   return new Promise((resolve, reject) => {
-    http.get(`${BASE_URL}${path}`, (res) => {
+    http.get(BASE_URL + path, (res) => {
       let body = '';
       res.on('data', chunk => body += chunk);
       res.on('end', () => resolve({ status: res.statusCode, body }));
@@ -60,11 +57,11 @@ let failed = 0;
 async function test(name, fn) {
   try {
     await fn();
-    console.log(`  ✅  ${name}`);
+    console.log('  PASS  ' + name);
     passed++;
   } catch (err) {
-    console.log(`  ❌  ${name}`);
-    console.log(`       ${err.message}`);
+    console.log('  FAIL  ' + name);
+    console.log('        ' + err.message);
     failed++;
   }
 }
@@ -74,21 +71,20 @@ function assert(condition, message) {
 }
 
 async function runTests() {
-  console.log(`\n🧪  Running tests against ${BASE_URL}\n`);
+  console.log('\nRunning tests against ' + BASE_URL + '\n');
 
-  // Wait for server to be ready before firing any tests
   await waitForServer();
 
   await test('GET /health returns 200 and status UP', async () => {
     const { status, body } = await get('/health');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
     const json = JSON.parse(body);
-    assert(json.status === 'UP', `Expected status UP, got ${json.status}`);
+    assert(json.status === 'UP', 'Expected status UP, got ' + json.status);
   });
 
   await test('GET /info returns hostname and platform', async () => {
     const { status, body } = await get('/info');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
     const json = JSON.parse(body);
     assert(json.hostname, 'Missing hostname');
     assert(json.platform, 'Missing platform');
@@ -96,7 +92,7 @@ async function runTests() {
 
   await test('GET /metrics returns memory stats', async () => {
     const { status, body } = await get('/metrics');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
     const json = JSON.parse(body);
     assert(json.total_memory > 0, 'Missing total_memory');
     assert(json.memory_usage_percent, 'Missing memory_usage_percent');
@@ -104,14 +100,14 @@ async function runTests() {
 
   await test('GET /api/cpu returns cpu usage', async () => {
     const { status, body } = await get('/api/cpu');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
     const json = JSON.parse(body);
     assert(typeof json.cpu === 'number', 'cpu should be a number');
   });
 
   await test('GET /api/memory returns total/used/free', async () => {
     const { status, body } = await get('/api/memory');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
     const json = JSON.parse(body);
     assert(json.total, 'Missing total memory');
     assert(json.used, 'Missing used memory');
@@ -120,7 +116,7 @@ async function runTests() {
 
   await test('GET /api/system returns hostname and uptime', async () => {
     const { status, body } = await get('/api/system');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
     const json = JSON.parse(body);
     assert(json.hostname, 'Missing hostname');
     assert(json.uptime, 'Missing uptime');
@@ -128,44 +124,57 @@ async function runTests() {
 
   await test('GET /api/logs returns 200', async () => {
     const { status } = await get('/api/logs');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
   });
 
   await test('GET /metrics/deployments returns success status', async () => {
     const { status, body } = await get('/metrics/deployments');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
     const json = JSON.parse(body);
     assert(json.status === 'success', 'Expected status success');
   });
 
   await test('GET / returns 200', async () => {
     const { status } = await get('/');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
   });
 
   await test('GET /dashboard returns 200', async () => {
     const { status } = await get('/dashboard');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
   });
 
   await test('GET /blog returns 200', async () => {
     const { status } = await get('/blog');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
   });
 
   await test('GET /about returns 200', async () => {
     const { status } = await get('/about');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
   });
 
   await test('GET /projects returns 200', async () => {
     const { status } = await get('/projects');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
   });
 
   await test('GET /contact returns 200', async () => {
     const { status } = await get('/contact');
-    assert(status === 200, `Expected 200, got ${status}`);
+    assert(status === 200, 'Expected 200, got ' + status);
   });
 
-  await test('GET /blog/nonexistent returns "Post not found
+  await test('GET /blog/nonexistent returns Post not found', async () => {
+    const { status, body } = await get('/blog/nonexistent-id-xyz');
+    assert(status === 200, 'Expected 200, got ' + status);
+    assert(body.includes('Post not found'), 'Expected Post not found message');
+  });
+
+  console.log('\n  Results: ' + passed + ' passed, ' + failed + ' failed\n');
+  process.exit(failed > 0 ? 1 : 0);
+}
+
+runTests().catch(err => {
+  console.error('Test runner crashed:', err);
+  process.exit(1);
+});
