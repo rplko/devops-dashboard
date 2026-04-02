@@ -1,61 +1,172 @@
-name: Deploy Docker App to EC2
+name: Deploy Pipeline — Staging → DC → Production
 
 on:
   push:
     branches:
       - main
+      - staging
+  workflow_dispatch:
 
 jobs:
-  deploy:
+
+  # ─────────────────────────────────────────
+  # STAGE 1 — Run tests before anything else
+  # ─────────────────────────────────────────
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+  # ─────────────────────────────────────────
+  # STAGE 2 — Deploy to Staging (automatic)
+  # ─────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: test
+    environment: staging
 
     env:
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_USER: ${{ secrets.EC2_USER }}
-      SSH_KEY: ${{ secrets.SSH_KEY }}
+      EC2_HOST: ${{ secrets.STAGING_HOST }}
+      EC2_USER: ${{ secrets.STAGING_USER }}
+      SSH_KEY:  ${{ secrets.STAGING_SSH_KEY }}
 
     steps:
-
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Setup SSH
         run: |
-          echo "🔑 Setting up SSH..."
-
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
 
-      - name: Deploy to EC2
+      - name: Deploy to staging server
         run: |
-          echo "🚀 Connecting to EC2 and deploying..."
-
           ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
-
-          set -e
-
-          echo "📂 Moving to project directory..."
-          cd ~/devops-dashboard
-
-          echo "⬇️ Pulling latest code..."
-           git fetch origin
-           git reset --hard origin/main
-
-          
-
-          echo "🏗️ Building Docker image..."
-          docker compose build
-
-          echo "🚀 Starting / Updating container..."
-          docker compose up -d
-
-          echo "🧹 Cleaning unused containers..."
-          docker container prune -f
-          echo "✅ Deployment complete!"
-
+            set -e
+            cd ~/devops-dashboard
+            git fetch origin && git reset --hard origin/main
+            export NODE_ENV=staging
+            docker compose -f docker-compose.yml -f docker-compose.staging.yml build
+            docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+            docker container prune -f
+            echo "Staging deployment done."
           EOF
+
+      - name: Health check — staging
+        run: |
+          sleep 10
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$EC2_HOST:3000/health)
+          if [ "$STATUS" != "200" ]; then
+            echo "Staging health check failed (HTTP $STATUS)"
+            exit 1
+          fi
+          echo "Staging is healthy (HTTP $STATUS)"
+
+  # ────────────────────────────────────────────────────────────────
+  # STAGE 3 — Deploy to DC (requires manual approval in GitHub UI)
+  # ────────────────────────────────────────────────────────────────
+  deploy-dc:
+    name: Deploy to DC
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    environment: dc
+
+    env:
+      EC2_HOST: ${{ secrets.DC_HOST }}
+      EC2_USER: ${{ secrets.DC_USER }}
+      SSH_KEY:  ${{ secrets.DC_SSH_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+
+      - name: Deploy to DC server
+        run: |
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+            set -e
+            cd ~/devops-dashboard
+            git fetch origin && git reset --hard origin/main
+            export NODE_ENV=dc
+            docker compose -f docker-compose.yml -f docker-compose.dc.yml build
+            docker compose -f docker-compose.yml -f docker-compose.dc.yml up -d
+            docker container prune -f
+            echo "DC deployment done."
+          EOF
+
+      - name: Health check — DC
+        run: |
+          sleep 10
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$EC2_HOST:3000/health)
+          if [ "$STATUS" != "200" ]; then
+            echo "DC health check failed (HTTP $STATUS)"
+            exit 1
+          fi
+          echo "DC is healthy (HTTP $STATUS)"
+
+  # ───────────────────────────────────────────────────────────────────────
+  # STAGE 4 — Deploy to Production (requires separate manual approval gate)
+  # ───────────────────────────────────────────────────────────────────────
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deploy-dc
+    environment: production
+
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
+      SSH_KEY:  ${{ secrets.SSH_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+
+      - name: Deploy to production
+        run: |
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+            set -e
+            cd ~/devops-dashboard
+            git fetch origin && git reset --hard origin/main
+            export NODE_ENV=production
+            docker compose build
+            docker compose up -d
+            docker container prune -f
+            echo "Production deployment done."
+          EOF
+
+      - name: Health check — production
+        run: |
+          sleep 10
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$EC2_HOST:3000/health)
+          if [ "$STATUS" != "200" ]; then
+            echo "Production health check failed (HTTP $STATUS)"
+            exit 1
+          fi
+          echo "Production is live and healthy."

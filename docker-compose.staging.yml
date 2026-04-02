@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  dashboard:
+    environment:
+      - NODE_ENV=staging
+      - DEPLOY_COUNT=staging
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  prometheus:
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.route-prefix=/prometheus"
+      - "--web.external-url=http://44.222.215.213/prometheus"
