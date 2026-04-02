@@ -1,10 +1,8 @@
 /**
  * Integration tests for devops-dashboard
- * Starts its own server instance so no separate process needed
  */
 
-// Mock dockerode before anything else so server.js doesn't crash
-// when Docker socket isn't available (e.g. in GitHub Actions)
+// Mock dockerode before anything else
 const Module = require('module');
 const originalLoad = Module._load;
 Module._load = function(name, ...args) {
@@ -25,15 +23,30 @@ Module._load = function(name, ...args) {
 
 const http = require('http');
 
-// Start the server
-const app = require('../server.js');
+// Force IPv4
+const BASE_URL = 'http://127.0.0.1:3000';
 
-const BASE_URL = 'http://localhost:3000';
+// Import server — this starts it
+require('../server.js');
+
+// Wait for server to be ready before running tests
+function waitForServer(retries = 10) {
+  return new Promise((resolve, reject) => {
+    function attempt(n) {
+      http.get(`${BASE_URL}/health`, (res) => {
+        resolve();
+      }).on('error', (err) => {
+        if (n <= 0) return reject(new Error('Server never became ready'));
+        setTimeout(() => attempt(n - 1), 500);
+      });
+    }
+    attempt(retries);
+  });
+}
 
 function get(path) {
   return new Promise((resolve, reject) => {
-    const url = new URL(path, BASE_URL);
-    http.get(url.toString(), (res) => {
+    http.get(`${BASE_URL}${path}`, (res) => {
       let body = '';
       res.on('data', chunk => body += chunk);
       res.on('end', () => resolve({ status: res.statusCode, body }));
@@ -62,6 +75,9 @@ function assert(condition, message) {
 
 async function runTests() {
   console.log(`\n🧪  Running tests against ${BASE_URL}\n`);
+
+  // Wait for server to be ready before firing any tests
+  await waitForServer();
 
   await test('GET /health returns 200 and status UP', async () => {
     const { status, body } = await get('/health');
@@ -152,17 +168,4 @@ async function runTests() {
     assert(status === 200, `Expected 200, got ${status}`);
   });
 
-  await test('GET /blog/nonexistent returns "Post not found"', async () => {
-    const { status, body } = await get('/blog/nonexistent-id-xyz');
-    assert(status === 200, `Expected 200, got ${status}`);
-    assert(body.includes('Post not found'), 'Expected "Post not found" message');
-  });
-
-  console.log(`\n  Results: ${passed} passed, ${failed} failed\n`);
-  process.exit(failed > 0 ? 1 : 0);
-}
-
-runTests().catch(err => {
-  console.error('Test runner crashed:', err);
-  process.exit(1);
-});
+  await test('GET /blog/nonexistent returns "Post not found
