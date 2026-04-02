@@ -77,13 +77,18 @@ jobs:
 
       - name: Health check — staging
         run: |
-          sleep 10
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$EC2_HOST:3000/health)
-          if [ "$STATUS" != "200" ]; then
-            echo "Staging health check failed (HTTP $STATUS)"
-            exit 1
-          fi
-          echo "Staging is healthy (HTTP $STATUS)"
+          sleep 20
+          for i in {1..5}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$EC2_HOST:3000/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "Staging is healthy (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "Attempt $i — got HTTP $STATUS, retrying in 5s..."
+            sleep 5
+          done
+          echo "Staging health check failed after all retries"
+          exit 1
 
   deploy-dc:
     name: Deploy to DC
@@ -121,13 +126,18 @@ jobs:
 
       - name: Health check — DC
         run: |
-          sleep 15
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$EC2_HOST:3000/health)
-          if [ "$STATUS" != "200" ]; then
-            echo "DC health check failed (HTTP $STATUS)"
-            exit 1
-          fi
-          echo "DC is healthy (HTTP $STATUS)"
+          sleep 20
+          for i in {1..5}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$EC2_HOST:3000/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "DC is healthy (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "Attempt $i — got HTTP $STATUS, retrying in 5s..."
+            sleep 5
+          done
+          echo "DC health check failed after all retries"
+          exit 1
 
   deploy-production:
     name: Deploy to Production
@@ -165,10 +175,15 @@ jobs:
 
       - name: Health check — production
         run: |
-          sleep 15
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$EC2_HOST:3000/health)
-          if [ "$STATUS" != "200" ]; then
-            echo "Production health check failed (HTTP $STATUS)"
-            exit 1
-          fi
-          echo "Production is live and healthy."
+          sleep 20
+          for i in {1..5}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$EC2_HOST:3000/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "Production is live and healthy (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "Attempt $i — got HTTP $STATUS, retrying in 5s..."
+            sleep 5
+          done
+          echo "Production health check failed after all retries"
+          exit 1
