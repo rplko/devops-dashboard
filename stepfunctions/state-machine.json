@@ -1,0 +1,166 @@
+{
+  "Comment": "Devops Dashboard Deployment Pipeline",
+  "StartAt": "Staging Health Check",
+  "States": {
+    "Staging Health Check": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-health-check",
+      "Parameters": {
+        "health_url": "http://44.222.215.213:3000/health",
+        "environment": "staging"
+      },
+      "Next": "Send DC Approval Email",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "Notify Failure",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ]
+    },
+    "Send DC Approval Email": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-approval-email",
+      "Parameters": {
+        "TaskToken.$": "$$.Task.Token",
+        "Message": "Staging is healthy. Approve to deploy to DC.",
+        "Environment": "dc"
+      },
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "devops-dashboard-approval-email",
+        "Payload": {
+          "TaskToken.$": "$$.Task.Token",
+          "Message": "Staging is healthy. Approve to deploy to DC.",
+          "Environment": "dc"
+        }
+      },
+      "Next": "DC Health Check",
+      "TimeoutSeconds": 86400,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "Notify Failure",
+          "ResultPath": "$.error"
+        }
+      ]
+    },
+    "DC Health Check": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-health-check",
+      "Parameters": {
+        "health_url": "http://98.92.57.61:3000/health",
+        "environment": "dc"
+      },
+      "Next": "Send Production Approval Email",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "Rollback DC",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ]
+    },
+    "Send Production Approval Email": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "devops-dashboard-approval-email",
+        "Payload": {
+          "TaskToken.$": "$$.Task.Token",
+          "Message": "DC is healthy. Approve to deploy to Production.",
+          "Environment": "production"
+        }
+      },
+      "Next": "Production Health Check",
+      "TimeoutSeconds": 86400,
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "Notify Failure",
+          "ResultPath": "$.error"
+        }
+      ]
+    },
+    "Production Health Check": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-health-check",
+      "Parameters": {
+        "health_url": "http://98.92.57.61:3000/health",
+        "environment": "production"
+      },
+      "Next": "Notify Success",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "Rollback Production",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ]
+    },
+    "Rollback DC": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-notify",
+      "Parameters": {
+        "status": "failed",
+        "environment": "dc",
+        "message": "DC health check failed — rolling back"
+      },
+      "Next": "Notify Failure"
+    },
+    "Rollback Production": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-notify",
+      "Parameters": {
+        "status": "failed",
+        "environment": "production",
+        "message": "Production health check failed — rolling back"
+      },
+      "Next": "Notify Failure"
+    },
+    "Notify Success": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-notify",
+      "Parameters": {
+        "status": "success",
+        "environment": "production",
+        "message": "Deployment completed successfully across all environments"
+      },
+      "End": true
+    },
+    "Notify Failure": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-notify",
+      "Parameters": {
+        "status": "failed",
+        "environment": "unknown",
+        "message": "Deployment failed — check logs for details"
+      },
+      "End": true
+    }
+  }
+}
