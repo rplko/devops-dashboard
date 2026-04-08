@@ -1,18 +1,18 @@
 version: "3.9"
 
 services:
-
   cadvisor:
-   image: gcr.io/cadvisor/cadvisor:latest
-   container_name: cadvisor
-   restart: unless-stopped
-   ports:
-    - "8080:8080"
-   volumes:
-    - /:/rootfs:ro
-    - /var/run:/var/run:ro
-    - /sys:/sys:ro
-    - /var/lib/docker/:/var/lib/docker:ro
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
   dashboard:
     build: .
     container_name: dashboard
@@ -23,56 +23,57 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   alertmanager:
-   image: prom/alertmanager
-   container_name: alertmanager
-   ports:
-    - "9093:9093"
-   volumes:
-    - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-   command:
-    - "--config.file=/etc/alertmanager/alertmanager.yml"
+    image: prom/alertmanager
+    container_name: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+
   prometheus:
     image: prom/prometheus
     container_name: prometheus
     restart: unless-stopped
     ports:
-    - "9090:9090"
+      - "9090:9090"
     volumes:
-    - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
-    - "--config.file=/etc/prometheus/prometheus.yml"
-    - "--web.route-prefix=/prometheus"
-    - "--web.external-url=http://98.92.57.61/prometheus"
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.route-prefix=/prometheus"
+      - "--web.external-url=http://98.92.57.61/prometheus"
+
   node-exporter:
     image: prom/node-exporter
     container_name: node-exporter
     restart: unless-stopped
     ports:
-    - "9100:9100"
+      - "9100:9100"
     volumes:
-    - /proc:/host/proc:ro
-    - /sys:/host/sys:ro
-    - /:/rootfs:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
     command:
-    - '--path.procfs=/host/proc'
-    - '--path.rootfs=/rootfs'
-    - '--path.sysfs=/host/sys'
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
 
- grafana:
-   image: grafana/grafana
-   container_name: grafana
-   restart: unless-stopped
-   ports:
-     - "3001:3000"
-   environment:
-     - GF_SERVER_ROOT_URL=http://98.92.57.61/grafana/
-     - GF_SERVER_SERVE_FROM_SUB_PATH=true
-     - GF_SECURITY_ALLOW_EMBEDDING=true
-     - GF_AUTH_ANONYMOUS_ENABLED=true
-     - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
-     - GF_SECURITY_ALLOW_EMBEDDING=true
-   volumes:
-     - grafana_data:/var/lib/grafana
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SERVER_ROOT_URL=http://98.92.57.61/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - grafana_data:/var/lib/grafana
 
 volumes:
   grafana_data:
