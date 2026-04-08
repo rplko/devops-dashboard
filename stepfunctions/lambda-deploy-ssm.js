@@ -1,0 +1,124 @@
+const {
+  SSMClient,
+  SendCommandCommand,
+  GetCommandInvocationCommand
+} = require('@aws-sdk/client-ssm');
+
+const ssm = new SSMClient({ region: 'us-east-1' });
+
+const INSTANCE_IDS = {
+  dc:         process.env.DC_INSTANCE_ID,
+  production: process.env.PROD_INSTANCE_ID
+};
+
+const COMPOSE_OVERRIDES = {
+  dc:         'docker-compose.yml -f docker-compose.dc.yml',
+  production: 'docker-compose.yml'
+};
+
+/**
+ * Polls SSM until the command finishes or times out.
+ * Returns the final status + stdout/stderr.
+ */
+async function waitForCommand(commandId, instanceId, timeoutMs = 300000) {
+  const start = Date.now();
+  const pollInterval = 5000;
+
+  while (Date.now() - start < timeoutMs) {
+    await sleep(pollInterval);
+
+    const result = await ssm.send(new GetCommandInvocationCommand({
+      CommandId: commandId,
+      InstanceId: instanceId
+    }));
+
+    const status = result.StatusDetails;
+    console.log(`[SSM] Command ${commandId} status: ${status}`);
+
+    if (['Success', 'Failed', 'Cancelled', 'TimedOut'].includes(status)) {
+      return {
+        status,
+        stdout: result.StandardOutputContent || '',
+        stderr: result.StandardErrorContent  || ''
+      };
+    }
+  }
+
+  throw new Error(`SSM command ${commandId} timed out after ${timeoutMs / 1000}s`);
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+exports.handler = async (event) => {
+  const environment = event.environment;
+  const commit      = event.commit      || 'unknown';
+  const branch      = event.branch      || 'main';
+
+  console.log(`[Deploy] Starting SSM deployment to ${environment}`);
+  console.log(`[Deploy] Commit: ${commit} | Branch: ${branch}`);
+
+  const instanceId = INSTANCE_IDS[environment];
+  if (!instanceId) {
+    throw new Error(`No instance ID configured for environment: ${environment}`);
+  }
+
+  const composeFiles = COMPOSE_OVERRIDES[environment];
+
+  // The shell script SSM will run on the EC2 instance
+  const deployScript = [
+    'set -e',
+    'echo "[Deploy] Starting deployment on $(hostname) at $(date)"',
+
+    // Pull latest code
+    'cd ~/devops-dashboard',
+    'git fetch origin',
+    `git reset --hard origin/${branch}`,
+    'echo "[Deploy] Code pulled successfully"',
+
+    // Rebuild and restart containers
+    `docker compose -f ${composeFiles} build --no-cache`,
+    `docker compose -f ${composeFiles} up -d`,
+
+    // Clean up old images
+    'docker image prune -f',
+    'docker container prune -f',
+
+    'echo "[Deploy] Deployment complete at $(date)"'
+  ].join('\n');
+
+  // Send the command via SSM Run Command
+  const sendResult = await ssm.send(new SendCommandCommand({
+    InstanceIds:    [instanceId],
+    DocumentName:   'AWS-RunShellScript',
+    Parameters:     { commands: [deployScript] },
+    Comment:        `devops-dashboard deploy ${environment} @ ${commit}`,
+    TimeoutSeconds: 300
+  }));
+
+  const commandId = sendResult.Command.CommandId;
+  console.log(`[SSM] Command sent. CommandId: ${commandId}`);
+
+  // Wait for it to finish
+  const result = await waitForCommand(commandId, instanceId);
+
+  console.log(`[SSM] stdout:\n${result.stdout}`);
+  if (result.stderr) console.log(`[SSM] stderr:\n${result.stderr}`);
+
+  if (result.status !== 'Success') {
+    throw new Error(
+      `SSM deployment failed on ${environment}.\nStatus: ${result.status}\nError: ${result.stderr}`
+    );
+  }
+
+  return {
+    status:      'success',
+    environment,
+    commandId,
+    commit,
+    branch,
+    timestamp:   new Date().toISOString(),
+    output:      result.stdout
+  };
+};

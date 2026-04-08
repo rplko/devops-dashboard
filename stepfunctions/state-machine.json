@@ -1,7 +1,8 @@
 {
-  "Comment": "Devops Dashboard Deployment Pipeline",
+  "Comment": "Devops Dashboard Deployment Pipeline — with SSM deployments",
   "StartAt": "Staging Health Check",
   "States": {
+
     "Staging Health Check": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-health-check",
@@ -26,6 +27,7 @@
         }
       ]
     },
+
     "Send DC Approval Email": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
@@ -37,7 +39,7 @@
           "Environment": "dc"
         }
       },
-      "Next": "DC Health Check",
+      "Next": "Deploy to DC",
       "TimeoutSeconds": 86400,
       "Catch": [
         {
@@ -47,6 +49,34 @@
         }
       ]
     },
+
+    "Deploy to DC": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-deploy-ssm",
+      "Parameters": {
+        "environment": "dc",
+        "commit.$": "$.commit",
+        "branch.$": "$.branch"
+      },
+      "Next": "DC Health Check",
+      "ResultPath": "$.dcDeploy",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "Notify DC Failure",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ]
+    },
+
     "DC Health Check": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-health-check",
@@ -65,19 +95,20 @@
       "Retry": [
         {
           "ErrorEquals": ["States.ALL"],
-          "IntervalSeconds": 5,
-          "MaxAttempts": 3,
+          "IntervalSeconds": 10,
+          "MaxAttempts": 5,
           "BackoffRate": 2
         }
       ]
     },
+
     "Notify DC Success": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-notify",
       "Parameters": {
         "status": "success",
         "environment": "dc",
-        "message": "DC deployment completed successfully"
+        "message": "DC deployment completed successfully via SSM"
       },
       "Next": "Send Production Approval Email",
       "Catch": [
@@ -88,16 +119,18 @@
         }
       ]
     },
+
     "Notify DC Failure": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-notify",
       "Parameters": {
         "status": "failed",
         "environment": "dc",
-        "message": "DC health check failed"
+        "message": "DC deployment or health check failed"
       },
       "Next": "Notify Failure"
     },
+
     "Send Production Approval Email": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
@@ -109,7 +142,7 @@
           "Environment": "production"
         }
       },
-      "Next": "Production Health Check",
+      "Next": "Deploy to Production",
       "TimeoutSeconds": 86400,
       "Catch": [
         {
@@ -119,6 +152,34 @@
         }
       ]
     },
+
+    "Deploy to Production": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-deploy-ssm",
+      "Parameters": {
+        "environment": "production",
+        "commit.$": "$.commit",
+        "branch.$": "$.branch"
+      },
+      "Next": "Production Health Check",
+      "ResultPath": "$.prodDeploy",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "Notify Production Failure",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ]
+    },
+
     "Production Health Check": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-health-check",
@@ -137,41 +198,45 @@
       "Retry": [
         {
           "ErrorEquals": ["States.ALL"],
-          "IntervalSeconds": 5,
-          "MaxAttempts": 3,
+          "IntervalSeconds": 10,
+          "MaxAttempts": 5,
           "BackoffRate": 2
         }
       ]
     },
+
     "Notify Success": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-notify",
       "Parameters": {
         "status": "success",
         "environment": "production",
-        "message": "Deployment completed successfully across all environments"
+        "message": "Deployment completed successfully across all environments via SSM"
       },
       "End": true
     },
+
     "Notify Production Failure": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-notify",
       "Parameters": {
         "status": "failed",
         "environment": "production",
-        "message": "Production health check failed"
+        "message": "Production deployment or health check failed"
       },
       "Next": "Notify Failure"
     },
+
     "Notify Failure": {
       "Type": "Task",
       "Resource": "arn:aws:lambda:us-east-1:029139774327:function:devops-dashboard-notify",
       "Parameters": {
         "status": "failed",
         "environment": "unknown",
-        "message": "Deployment failed — check logs for details"
+        "message": "Deployment pipeline failed — check CloudWatch logs for details"
       },
       "End": true
     }
+
   }
 }
