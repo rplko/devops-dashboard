@@ -1,9 +1,129 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DevOps Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .section-divider {
+            border: none;
+            border-top: 1px solid #1e293b;
+            margin: 50px 0;
+        }
+        .status-panel {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-top: 24px;
+        }
+        .status-panel h2 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: #38bdf8;
+            font-size: 18px;
+        }
+        .status-panel p {
+            font-size: 15px;
+            margin-bottom: 8px;
+            color: #94a3b8;
+        }
+        .status-panel span {
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+        .table-wrapper {
+            margin-top: 32px;
+        }
+        .table-wrapper h2 {
+            color: #38bdf8;
+            margin-bottom: 14px;
+            font-size: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #020617;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #1e293b;
+        }
+        th {
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #1e293b;
+        }
+        td {
+            padding: 11px 16px;
+            color: #cbd5e1;
+            font-size: 14px;
+            border-bottom: 1px solid #0f172a;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #0f172a; }
+        .grafana-section { padding-top: 10px; }
+        .grafana-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+        .grafana-card {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+            transition: 0.3s;
+        }
+        .grafana-card:hover {
+            border-color: #38bdf8;
+            transform: translateY(-4px);
+            box-shadow: 0 14px 35px rgba(56,189,248,0.12);
+        }
+        .grafana-card-title {
+            padding: 14px 18px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #38bdf8;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border-bottom: 1px solid #1e293b;
+        }
+        .grafana-card iframe {
+            display: block;
+            width: 100%;
+            height: 240px;
+            border: none;
+            background: #020617;
+        }
+        .grafana-link-row {
+            text-align: right;
+            margin-top: 10px;
+        }
+        .grafana-full-link {
+            display: inline-block;
+            color: #38bdf8;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 8px 18px;
+            border: 1px solid #38bdf8;
+            border-radius: 6px;
+            transition: 0.3s;
+        }
+        .grafana-full-link:hover {
+            background: #38bdf8;
+            color: #0f172a;
+        }
+    </style>
 </head>
 <body>
 
@@ -16,261 +136,301 @@
     <a href="/contact">Contact</a>
 </nav>
 
-
 <div class="container">
-<section class="container">
-    <h1 class="section-title">Live DevOps Monitoring Dashboard</h1>
-    <p class="lead">
-        This dashboard monitors the live EC2 server where this website is hosted.
-        It demonstrates logging, system monitoring, and DevOps deployment practices in real time.
-    </p>
-</section>
 
+    <!-- Page Header -->
+    <section>
+        <h1 class="section-title">Live DevOps Monitoring Dashboard</h1>
+        <p class="lead">
+            This dashboard monitors the live EC2 server where this website is hosted.
+            It demonstrates logging, system monitoring, and DevOps deployment practices in real time.
+        </p>
+    </section>
+
+    <!-- Metric Cards -->
     <div class="cards">
         <div class="card">
             <h3>CPU Usage</h3>
             <canvas id="cpuChart"></canvas>
         </div>
-
         <div class="card">
-    <h3>Memory Usage</h3>
-    <canvas id="memoryChart"></canvas>
-</div>
-<div class="card">
-    <h3>CPU Load Gauge</h3>
-    <canvas id="cpuGauge"></canvas>
-</div>
-
+            <h3>Memory Usage</h3>
+            <canvas id="memoryChart"></canvas>
+        </div>
+        <div class="card">
+            <h3>CPU Load Gauge</h3>
+            <canvas id="cpuGauge"></canvas>
+        </div>
         <div class="card">
             <h3>System Info</h3>
             <div id="systemBox">Loading...</div>
         </div>
     </div>
 
-    <div class="card">
+    <!-- Application Logs -->
+    <div class="card" style="margin-top: 24px;">
         <h3>Application Logs</h3>
         <div id="logsBox" class="logs">Loading logs...</div>
     </div>
-    <div class="card">
-    <h3>Deployment Status</h3>
-    <div id="deployBox">Checking pipeline...</div>
-    
-    
-</div>
-<div class="status-panel">
-    <h2>Infrastructure Status</h2>
 
-     <p>CPU Load: <span id="cpu"></span></p>
-     <p>Memory Usage: <span id="memory"></span>%</p>
-     <p>Running Containers: <span id="containers"></span></p>
+    <!-- Deployment Status -->
+    <div class="card" style="margin-top: 24px;">
+        <h3>Deployment Status</h3>
+        <div id="deployBox">Checking pipeline...</div>
     </div>
-</div>
-<h2>Containers</h2>
 
-<table>
-<tr>
-<th>Name</th>
-<th>Status</th>
-<th>Memory %</th>
-</tr>
+    <!-- Infrastructure Status -->
+    <div class="status-panel">
+        <h2>Infrastructure Status</h2>
+        <p>CPU Load: <span id="cpu">—</span></p>
+        <p>Memory Usage: <span id="memory">—</span>%</p>
+        <p>Running Containers: <span id="containers">—</span></p>
+    </div>
 
-<tbody id="containerTable"></tbody>
-</table>
-<script>
-/* -------- Containers -------- */
-async function loadContainers(){
+    <!-- Containers Table -->
+    <div class="table-wrapper">
+        <h2>Containers</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Memory %</th>
+                </tr>
+            </thead>
+            <tbody id="containerTable"></tbody>
+        </table>
+    </div>
 
-  const res = await fetch("/api/container-stats");
-  const data = await res.json();
+    <hr class="section-divider">
 
-  const table = document.getElementById("containerTable");
-  table.innerHTML = "";
+    <!-- AWS Glue / Grafana Section -->
+    <div class="grafana-section">
+        <h2 class="section-title">📊 AWS Glue Crawler Metrics</h2>
+        <p class="lead" style="font-size: 15px; margin-bottom: 28px;">
+            Live metrics sourced from <strong>Amazon Athena</strong> via AWS Glue crawlers,
+            visualised in Grafana — covering container memory, GitHub Actions run duration,
+            memory usage, and CPU over the last 12 hours.
+        </p>
 
-  data.forEach(c => {
+        <div class="grafana-grid">
+            <div class="grafana-card">
+                <div class="grafana-card-title">Docker Container Memory (%)</div>
+                <iframe
+                    src="http://98.92.57.61/grafana/d-solo/ad9vmxd/devops-dashboard-e28094-metrics?orgId=1&panelId=1&from=now-12h&to=now&timezone=browser&theme=dark"
+                    frameborder="0" allowfullscreen>
+                </iframe>
+            </div>
+            <div class="grafana-card">
+                <div class="grafana-card-title">GitHub Actions — Run Duration (seconds)</div>
+                <iframe
+                    src="http://98.92.57.61/grafana/d-solo/ad9vmxd/devops-dashboard-e28094-metrics?orgId=1&panelId=2&from=now-12h&to=now&timezone=browser&theme=dark"
+                    frameborder="0" allowfullscreen>
+                </iframe>
+            </div>
+            <div class="grafana-card">
+                <div class="grafana-card-title">Memory Usage (MB) — Used vs Free</div>
+                <iframe
+                    src="http://98.92.57.61/grafana/d-solo/ad9vmxd/devops-dashboard-e28094-metrics?orgId=1&panelId=3&from=now-12h&to=now&timezone=browser&theme=dark"
+                    frameborder="0" allowfullscreen>
+                </iframe>
+            </div>
+            <div class="grafana-card">
+                <div class="grafana-card-title">CPU Usage (%)</div>
+                <iframe
+                    src="http://98.92.57.61/grafana/d-solo/ad9vmxd/devops-dashboard-e28094-metrics?orgId=1&panelId=4&from=now-12h&to=now&timezone=browser&theme=dark"
+                    frameborder="0" allowfullscreen>
+                </iframe>
+            </div>
+        </div>
 
-    table.innerHTML += `
-      <tr>
-        <td>${c.name}</td>
-        <td>${c.status}</td>
-        <td>${c.memoryPercent}%</td>
-      </tr>
-    `;
+        <div class="grafana-link-row">
+            <a href="http://98.92.57.61/grafana/d/ad9vmxd/devops-dashboard-e28094-metrics?orgId=1&from=now-12h&to=now"
+               target="_blank" class="grafana-full-link">
+                Open Full Grafana Dashboard →
+            </a>
+        </div>
+    </div>
 
-  });
+</div><!-- /.container -->
 
-}
-
-setInterval(loadContainers, 5000);
-loadContainers();
-/* -------- Logs -------- */
-async function fetchLogs() {
-    const res = await fetch('/api/logs');
-    const text = await res.text();
-    document.getElementById('logsBox').innerText = text;
-}
-setInterval(fetchLogs, 5000);
-fetchLogs();
-/* -------- Memory Graph -------- */
-
-const memCtx = document.getElementById('memoryChart').getContext('2d');
-
-const memoryData = {
-    labels: [],
-    datasets: [{
-        label: 'Memory %',
-        data: [],
-        borderColor: '#2196F3',
-        tension: 0.3
-    }]
-};
-
-const memoryChart = new Chart(memCtx, {
-    type: 'line',
-    data: memoryData
-});
-
-async function fetchMemoryChart() {
-    const res = await fetch('/api/memory');
-    const data = await res.json();
-
-    const time = new Date().toLocaleTimeString();
-
-    const percent = ((data.used / data.total) * 100).toFixed(2);
-
-    if (memoryData.labels.length > 20) {
-        memoryData.labels.shift();
-        memoryData.datasets[0].data.shift();
-    }
-
-    memoryData.labels.push(time);
-    memoryData.datasets[0].data.push(percent);
-
-    memoryChart.update();
-}
-
-setInterval(fetchMemoryChart, 5000);
-fetchMemoryChart();
-/* -------- CPU Graph -------- */
-const ctx = document.getElementById('cpuChart').getContext('2d');
-const cpuData = { labels: [], datasets: [{ label: 'CPU %', data: [] }] };
-const cpuChart = new Chart(ctx, { type: 'line', data: cpuData });
-
-async function fetchCPU() {
-    const res = await fetch('/api/cpu');
-    const data = await res.json();
-    const time = new Date().toLocaleTimeString();
-
-    if (cpuData.labels.length > 20) {
-        cpuData.labels.shift();
-        cpuData.datasets[0].data.shift();
-    }
-
-    cpuData.labels.push(time);
-    cpuData.datasets[0].data.push(data.cpu);
-    cpuGauge.data.datasets[0].data = [data.cpu, 100 - data.cpu];
-    cpuGauge.data.datasets[0].currentValue = data.cpu;
-    cpuGauge.update();
-    cpuChart.update();
-}
-setInterval(fetchCPU, 5000);
-fetchCPU();
-/* -------- CPU Gauge -------- */
-const gaugeLabel = {
-    id: 'gaugeLabel',
-    afterDraw(chart) {
-        const { ctx, chartArea: { width, height } } = chart;
-
-        ctx.save();
-        ctx.font = 'bold 28px sans-serif';
-        ctx.fillStyle = '#333';
-        ctx.textAlign = 'center';
-        ctx.fillText(chart.config.data.datasets[0].currentValue + '%', width / 2, height - 10);
-    }
-};
-const gaugeCtx = document.getElementById('cpuGauge').getContext('2d');
-
-const cpuGauge = new Chart(gaugeCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ['CPU'],
-        datasets: [{
-            data: [0, 100],
-            currentValue: 0,
-            backgroundColor: ['#4CAF50', '#e0e0e0'],
-            borderWidth: 0
-        }]
-    },
-    options: {
-        rotation: -90,
-        circumference: 180,
-        cutout: '75%',
-        plugins: {
-            legend: { display: false }
-        }
-    },
-    plugins: [gaugeLabel]
-});
-/* -------- Memory -------- */
-async function fetchMemory() {
-    const res = await fetch('/api/memory');
-    const data = await res.json();
-    document.getElementById('memoryBox').innerHTML =
-        `Total: ${data.total} MB<br>Used: ${data.used} MB<br>Free: ${data.free} MB`;
-}
-setInterval(fetchMemory, 5000);
-fetchMemory();
-/* -------- Live Update  -------- */
-async function loadSystemStatus() {
-
-  const res = await fetch("/api/system-status");
-  const data = await res.json();
-
-  document.getElementById("cpu").innerText = data.cpuLoad;
-  document.getElementById("memory").innerText = data.memoryUsage;
-  document.getElementById("containers").innerText = data.runningContainers;
-
-}
-
-setInterval(loadSystemStatus, 5000);
-loadSystemStatus();
-/* -------- Deployment Status -------- */
-
-async function fetchDeployment() {
-    const res = await fetch('/api/deployment');
-    const data = await res.json();
-
-   const statusColor =
-    data.status === "success" ? "lime" :
-    data.status === "failure" ? "red" : "orange";
-
-document.getElementById('deployBox').innerHTML =
-    `<span style="color:${statusColor}">
-     Status: ${data.status.toUpperCase()}
-     </span><br>
-     Branch: ${data.branch}<br>
-     Commit: ${data.commit}<br>
-     Updated: ${new Date(data.time).toLocaleString()}`;
-}
-
-setInterval(fetchDeployment, 10000);
-fetchDeployment();
-/* -------- System -------- */
-async function fetchSystem() {
-    const res = await fetch('/api/system');
-    const data = await res.json();
-    document.getElementById('systemBox').innerHTML =
-        `Hostname: ${data.hostname}<br>
-         Platform: ${data.platform}<br>
-         CPU Cores: ${data.cpus}<br>
-         Uptime: ${data.uptime}`;
-}
-fetchSystem();
-</script>
 <footer>
     <div class="container">
         © 2026 Rajat Pandey • Built with Node.js, PM2, Docker, Nginx on AWS EC2
     </div>
 </footer>
 
+<script>
+
+    /* ── Containers ── */
+    async function loadContainers() {
+        const res = await fetch('/api/container-stats');
+        const data = await res.json();
+        const tbody = document.getElementById('containerTable');
+        tbody.innerHTML = '';
+        data.forEach(c => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${c.name}</td>
+                    <td>${c.status}</td>
+                    <td>${c.memoryPercent}%</td>
+                </tr>`;
+        });
+    }
+    setInterval(loadContainers, 5000);
+    loadContainers();
+
+    /* ── Application Logs ── */
+    async function fetchLogs() {
+        const res = await fetch('/api/logs');
+        const text = await res.text();
+        document.getElementById('logsBox').innerText = text;
+    }
+    setInterval(fetchLogs, 5000);
+    fetchLogs();
+
+    /* ── Memory Line Chart ── */
+    const memCtx = document.getElementById('memoryChart').getContext('2d');
+    const memoryData = {
+        labels: [],
+        datasets: [{
+            label: 'Memory %',
+            data: [],
+            borderColor: '#2196F3',
+            backgroundColor: 'rgba(33,150,243,0.1)',
+            tension: 0.3,
+            fill: true
+        }]
+    };
+    const memoryChart = new Chart(memCtx, { type: 'line', data: memoryData });
+
+    async function fetchMemoryChart() {
+        const res = await fetch('/api/memory');
+        const data = await res.json();
+        const time = new Date().toLocaleTimeString();
+        const percent = ((data.used / data.total) * 100).toFixed(2);
+        if (memoryData.labels.length > 20) {
+            memoryData.labels.shift();
+            memoryData.datasets[0].data.shift();
+        }
+        memoryData.labels.push(time);
+        memoryData.datasets[0].data.push(percent);
+        memoryChart.update();
+    }
+    setInterval(fetchMemoryChart, 5000);
+    fetchMemoryChart();
+
+    /* ── CPU Line Chart ── */
+    const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+    const cpuData = {
+        labels: [],
+        datasets: [{
+            label: 'CPU %',
+            data: [],
+            borderColor: '#4CAF50',
+            backgroundColor: 'rgba(76,175,80,0.1)',
+            tension: 0.3,
+            fill: true
+        }]
+    };
+    const cpuChart = new Chart(cpuCtx, { type: 'line', data: cpuData });
+
+    /* ── CPU Gauge ── */
+    const gaugeLabel = {
+        id: 'gaugeLabel',
+        afterDraw(chart) {
+            const { ctx, chartArea: { width, height } } = chart;
+            ctx.save();
+            ctx.font = 'bold 28px sans-serif';
+            ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'center';
+            ctx.fillText(
+                (chart.config.data.datasets[0].currentValue ?? 0) + '%',
+                width / 2,
+                height - 10
+            );
+            ctx.restore();
+        }
+    };
+
+    const gaugeCtx = document.getElementById('cpuGauge').getContext('2d');
+    const cpuGauge = new Chart(gaugeCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['CPU'],
+            datasets: [{
+                data: [0, 100],
+                currentValue: 0,
+                backgroundColor: ['#4CAF50', '#1e293b'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            rotation: -90,
+            circumference: 180,
+            cutout: '75%',
+            plugins: { legend: { display: false } }
+        },
+        plugins: [gaugeLabel]
+    });
+
+    async function fetchCPU() {
+        const res = await fetch('/api/cpu');
+        const data = await res.json();
+        const time = new Date().toLocaleTimeString();
+        if (cpuData.labels.length > 20) {
+            cpuData.labels.shift();
+            cpuData.datasets[0].data.shift();
+        }
+        cpuData.labels.push(time);
+        cpuData.datasets[0].data.push(data.cpu);
+        cpuGauge.data.datasets[0].data = [data.cpu, 100 - data.cpu];
+        cpuGauge.data.datasets[0].currentValue = data.cpu;
+        cpuGauge.update();
+        cpuChart.update();
+    }
+    setInterval(fetchCPU, 5000);
+    fetchCPU();
+
+    /* ── Infrastructure Status ── */
+    async function loadSystemStatus() {
+        const res = await fetch('/api/system-status');
+        const data = await res.json();
+        document.getElementById('cpu').innerText = data.cpuLoad;
+        document.getElementById('memory').innerText = data.memoryUsage;
+        document.getElementById('containers').innerText = data.runningContainers;
+    }
+    setInterval(loadSystemStatus, 5000);
+    loadSystemStatus();
+
+    /* ── Deployment Status ── */
+    async function fetchDeployment() {
+        const res = await fetch('/api/deployment');
+        const data = await res.json();
+        const statusColor =
+            data.status === 'success' ? '#22c55e' :
+            data.status === 'failure' ? '#ef4444' : '#f59e0b';
+        document.getElementById('deployBox').innerHTML = `
+            <span style="color:${statusColor}; font-weight:600;">● ${data.status.toUpperCase()}</span><br><br>
+            Branch: ${data.branch}<br>
+            Commit: <code>${data.commit}</code><br>
+            Updated: ${new Date(data.time).toLocaleString()}`;
+    }
+    setInterval(fetchDeployment, 10000);
+    fetchDeployment();
+
+    /* ── System Info ── */
+    async function fetchSystem() {
+        const res = await fetch('/api/system');
+        const data = await res.json();
+        document.getElementById('systemBox').innerHTML = `
+            Hostname: ${data.hostname}<br>
+            Platform: ${data.platform}<br>
+            CPU Cores: ${data.cpus}<br>
+            Uptime: ${data.uptime}`;
+    }
+    fetchSystem();
+
+</script>
 </body>
 </html>
