@@ -1,0 +1,115 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {"type": "grafana-athena-datasource", "uid": "athena-datasource"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "auto"},
+          "mappings": [],
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}},
+      "targets": [{
+        "connectionArgs": {"catalog": "__default", "database": "devops_dashboard_db", "region": "__default"},
+        "datasource": {"type": "grafana-athena-datasource", "uid": "athena-datasource"},
+        "format": 1,
+        "rawSQL": "SELECT from_iso8601_timestamp(timestamp) as time, c.name as metric, CAST(c.memory_percent AS double) as value FROM docker_stats CROSS JOIN UNNEST(containers) AS t(c) WHERE from_iso8601_timestamp(timestamp) > current_timestamp - interval '12' hour ORDER BY time",
+        "refId": "A"
+      }],
+      "title": "Docker Container Memory (%)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "grafana-athena-datasource", "uid": "athena-datasource"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "bars", "fillOpacity": 80},
+          "unit": "s"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "targets": [{
+        "connectionArgs": {"catalog": "__default", "database": "devops_dashboard_db", "region": "__default"},
+        "datasource": {"type": "grafana-athena-datasource", "uid": "athena-datasource"},
+        "format": 1,
+        "rawSQL": "SELECT from_iso8601_timestamp(timestamp) as time, r.name as metric, CAST(r.duration_seconds AS integer) as value FROM github_actions CROSS JOIN UNNEST(runs) AS t(r) WHERE from_iso8601_timestamp(timestamp) > current_timestamp - interval '12' hour AND r.duration_seconds IS NOT NULL ORDER BY time DESC LIMIT 20",
+        "refId": "A"
+      }],
+      "title": "GitHub Actions — Run Duration (seconds)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "grafana-athena-datasource", "uid": "athena-datasource"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1},
+          "unit": "decmbytes"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "used_mb"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "free_mb"}, "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]}
+        ]
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "targets": [{
+        "connectionArgs": {"catalog": "__default", "database": "devops_dashboard_db", "region": "__default"},
+        "datasource": {"type": "grafana-athena-datasource", "uid": "athena-datasource"},
+        "format": 1,
+        "rawSQL": "SELECT from_iso8601_timestamp(timestamp) as time, CAST(memory_used_mb AS double) as used_mb, CAST(memory_free_mb AS double) as free_mb FROM metrics WHERE from_iso8601_timestamp(timestamp) > current_timestamp - interval '12' hour ORDER BY time",
+        "refId": "A"
+      }],
+      "title": "Memory Usage (MB) — Used vs Free",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "grafana-athena-datasource", "uid": "athena-datasource"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "smooth", "lineWidth": 2},
+          "max": 100,
+          "min": 0,
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "targets": [{
+        "connectionArgs": {"catalog": "__default", "database": "devops_dashboard_db", "region": "__default"},
+        "datasource": {"type": "grafana-athena-datasource", "uid": "athena-datasource"},
+        "format": 1,
+        "rawSQL": "SELECT from_iso8601_timestamp(timestamp) as time, CAST(cpu_usage_percent AS double) as value FROM metrics WHERE from_iso8601_timestamp(timestamp) > current_timestamp - interval '12' hour ORDER BY time",
+        "refId": "A"
+      }],
+      "title": "CPU Usage (%)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["devops", "monitoring", "aws"],
+  "templating": {"list": []},
+  "time": {"from": "now-12h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "DevOps Dashboard — Metrics",
+  "uid": "ad9vmxd",
+  "version": 1,
+  "weekStart": ""
+}
