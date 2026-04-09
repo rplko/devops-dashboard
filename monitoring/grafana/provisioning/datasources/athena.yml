@@ -1,0 +1,15 @@
+apiVersion: 1
+
+datasources:
+  - name: Athena
+    type: grafana-athena-datasource
+    access: proxy
+    uid: athena-datasource
+    isDefault: false
+    jsonData:
+      authType: default
+      defaultRegion: us-east-1
+      catalog: AwsDataCatalog
+      database: devops_dashboard_db
+      workgroup: primary
+      outputLocation: s3://devops-dashboard-metrics-029139774327/athena-results/

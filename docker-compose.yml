@@ -70,6 +70,7 @@ services:
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_SERVER_ROOT_URL=http://98.92.57.61/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_INSTALL_PLUGINS=grafana-athena-datasource  # ADD THIS LINE
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
