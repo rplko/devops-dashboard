@@ -69,8 +69,8 @@ exports.handler = async (event) => {
   // The shell script SSM will run on the EC2 instance
   const deployScript = [
   'set -e',
-  'export HOME=/root',   // 🔥 FIX for git
-  'echo "=== NEW VERSION V6 ==="',
+  'export HOME=/root',
+  'echo "=== NEW VERSION V7 ==="',
   'echo "[Deploy] Starting deployment on $(hostname) at $(date)"',
 
   'APP_DIR=/home/ubuntu/devops-dashboard',
@@ -84,8 +84,8 @@ exports.handler = async (event) => {
 
   'cd $APP_DIR',
 
-  'echo "[Deploy] Fixing permissions..."',
-  'chmod -R 755 $APP_DIR',
+  // 🔥 FIX: force HTTPS instead of SSH
+  'git remote set-url origin https://github.com/rplko/devops-dashboard.git',
 
   'echo "[Deploy] Pulling latest code..."',
   'git fetch origin',
