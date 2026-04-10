@@ -93,6 +93,10 @@ exports.handler = async (event) => {
 
   'echo "[Deploy] Code updated successfully"',
 
+  'echo "[Deploy] Cleaning Docker system..."',
+  'sudo docker system prune -a -f',
+  'sudo docker builder prune -a -f',
+
   'echo "[Deploy] Restarting containers..."',
   `sudo docker compose -f ${composeFiles} down`,
   `sudo docker compose -f ${composeFiles} build --no-cache`,
