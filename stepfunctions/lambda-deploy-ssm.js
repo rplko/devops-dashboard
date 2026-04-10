@@ -68,29 +68,46 @@ exports.handler = async (event) => {
 
   // The shell script SSM will run on the EC2 instance
   const deployScript = [
-    'set -e',
-    'echo "[Deploy] Starting deployment on $(hostname) at $(date)"',
+  'set -e',
 
-    // Fix ownership to prevent permission issues
-    'sudo chown -R ubuntu:ubuntu ~/devops-dashboard || true',
+  'echo "[Deploy] Starting deployment on $(hostname) at $(date)"',
 
-    // Pull latest code
-    'cd ~/devops-dashboard',
-    'git fetch origin',
-    `git reset --hard origin/${branch}`,
-    'echo "[Deploy] Code pulled successfully"',
+  // Define app directory (ABSOLUTE PATH - critical fix)
+  'APP_DIR=/home/ubuntu/devops-dashboard',
 
-    // Rebuild and restart containers
-    `docker compose -f ${composeFiles} down`,
-    `docker compose -f ${composeFiles} build --no-cache`,
-    `docker compose -f ${composeFiles} up -d`,
+  // Ensure directory exists (first-time deployment safe)
+  'if [ ! -d "$APP_DIR" ]; then',
+  '  echo "[Deploy] First-time setup: cloning repo..."',
+  '  git clone https://github.com/rplko/devops-dashboard.git $APP_DIR',
+  'fi',
 
-    // Clean up old images
-    'docker image prune -f',
-    'docker container prune -f',
+  // Move into directory
+  'cd $APP_DIR',
 
-    'echo "[Deploy] Deployment complete at $(date)"'
-  ].join('\n');
+  // Fix ownership BEFORE operations
+  'echo "[Deploy] Fixing permissions..."',
+  'chown -R ubuntu:ubuntu $APP_DIR',
+
+  // Pull latest code safely
+  'echo "[Deploy] Pulling latest code..."',
+  'git fetch origin',
+  `git reset --hard origin/${branch}`,
+
+  'echo "[Deploy] Code updated successfully"',
+
+  // Docker deployment
+  'echo "[Deploy] Restarting containers..."',
+  `docker compose -f ${composeFiles} down`,
+  `docker compose -f ${composeFiles} build --no-cache`,
+  `docker compose -f ${composeFiles} up -d`,
+
+  // Cleanup
+  'echo "[Deploy] Cleaning up old images..."',
+  'docker image prune -f',
+  'docker container prune -f',
+
+  'echo "[Deploy] Deployment complete at $(date)"'
+].join('\n');
 
   // Send the command via SSM Run Command
   const sendResult = await ssm.send(new SendCommandCommand({
