@@ -69,7 +69,7 @@ exports.handler = async (event) => {
   // The shell script SSM will run on the EC2 instance
   const deployScript = [
   'set -e',
-  'echo "=== NEW VERSION V3 ==="',
+  'echo "=== NEW VERSION V4 ==="',
   'echo "[Deploy] Starting deployment on $(hostname) at $(date)"',
 
   'APP_DIR=/home/ubuntu/devops-dashboard',
@@ -78,6 +78,9 @@ exports.handler = async (event) => {
   '  echo "[Deploy] First-time setup: cloning repo..."',
   '  git clone https://github.com/rplko/devops-dashboard.git $APP_DIR',
   'fi',
+
+  // 🔥 FIX: mark repo as safe for root
+  'git config --global --add safe.directory /home/ubuntu/devops-dashboard',
 
   'cd $APP_DIR',
 
