@@ -69,7 +69,8 @@ exports.handler = async (event) => {
   // The shell script SSM will run on the EC2 instance
   const deployScript = [
   'set -e',
-  'echo "=== NEW VERSION V4 ==="',
+  'export HOME=/root',   // 🔥 FIX for git
+  'echo "=== NEW VERSION V6 ==="',
   'echo "[Deploy] Starting deployment on $(hostname) at $(date)"',
 
   'APP_DIR=/home/ubuntu/devops-dashboard',
@@ -79,7 +80,6 @@ exports.handler = async (event) => {
   '  git clone https://github.com/rplko/devops-dashboard.git $APP_DIR',
   'fi',
 
-  // 🔥 FIX: mark repo as safe for root
   'git config --global --add safe.directory /home/ubuntu/devops-dashboard',
 
   'cd $APP_DIR',
@@ -102,8 +102,7 @@ exports.handler = async (event) => {
   `sudo docker compose -f ${composeFiles} build --no-cache`,
   `sudo docker compose -f ${composeFiles} up -d`,
 
-  'echo "[Deploy] Cleaning up old images..."',
-  'sudo docker image prune -f',
+  'echo "[Deploy] Cleaning up old containers..."',
   'sudo docker container prune -f',
 
   'echo "[Deploy] Deployment complete at $(date)"'
