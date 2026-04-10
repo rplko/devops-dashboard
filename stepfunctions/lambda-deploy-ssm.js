@@ -71,6 +71,9 @@ exports.handler = async (event) => {
     'set -e',
     'echo "[Deploy] Starting deployment on $(hostname) at $(date)"',
 
+    // Fix ownership to prevent permission issues
+    'sudo chown -R ubuntu:ubuntu ~/devops-dashboard || true',
+
     // Pull latest code
     'cd ~/devops-dashboard',
     'git fetch origin',
@@ -78,6 +81,7 @@ exports.handler = async (event) => {
     'echo "[Deploy] Code pulled successfully"',
 
     // Rebuild and restart containers
+    `docker compose -f ${composeFiles} down`,
     `docker compose -f ${composeFiles} build --no-cache`,
     `docker compose -f ${composeFiles} up -d`,
 

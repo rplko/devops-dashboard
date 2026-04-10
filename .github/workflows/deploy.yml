@@ -68,12 +68,19 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
             set -e
+            
+            # Fix ownership first
+            sudo chown -R ubuntu:ubuntu ~/devops-dashboard || true
+            
             cd ~/devops-dashboard
             git fetch origin && git reset --hard origin/main
+            
             export NODE_ENV=staging
+            docker compose -f docker-compose.yml -f docker-compose.staging.yml down
             docker compose -f docker-compose.yml -f docker-compose.staging.yml build
             docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
             docker container prune -f
+            
             echo "Staging deployment done."
           EOF
 
