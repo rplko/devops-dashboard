@@ -69,35 +69,42 @@ exports.handler = async (event) => {
   // The shell script SSM will run on the EC2 instance
   const deployScript = [
   'set -e',
-  'echo "=== NEW VERSION V3 ==="',
+  'echo "=== NEW VERSION V2 ==="',
   'echo "[Deploy] Starting deployment on $(hostname) at $(date)"',
 
+  // Define app directory (ABSOLUTE PATH - critical fix)
   'APP_DIR=/home/ubuntu/devops-dashboard',
 
+  // Ensure directory exists (first-time deployment safe)
   'if [ ! -d "$APP_DIR" ]; then',
   '  echo "[Deploy] First-time setup: cloning repo..."',
   '  git clone https://github.com/rplko/devops-dashboard.git $APP_DIR',
   'fi',
 
+  // Move into directory
   'cd $APP_DIR',
 
+  // Fix ownership BEFORE operations
   'echo "[Deploy] Fixing permissions..."',
-  'chmod -R 755 $APP_DIR',
+  'chown -R ubuntu:ubuntu $APP_DIR',
 
+  // Pull latest code safely
   'echo "[Deploy] Pulling latest code..."',
   'git fetch origin',
   `git reset --hard origin/${branch}`,
 
   'echo "[Deploy] Code updated successfully"',
 
+  // Docker deployment
   'echo "[Deploy] Restarting containers..."',
-  `sudo docker compose -f ${composeFiles} down`,
-  `sudo docker compose -f ${composeFiles} build --no-cache`,
-  `sudo docker compose -f ${composeFiles} up -d`,
+  `docker compose -f ${composeFiles} down`,
+  `docker compose -f ${composeFiles} build --no-cache`,
+  `docker compose -f ${composeFiles} up -d`,
 
+  // Cleanup
   'echo "[Deploy] Cleaning up old images..."',
-  'sudo docker image prune -f',
-  'sudo docker container prune -f',
+  'docker image prune -f',
+  'docker container prune -f',
 
   'echo "[Deploy] Deployment complete at $(date)"'
 ].join('\n');
